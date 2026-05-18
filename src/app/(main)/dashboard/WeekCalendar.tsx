@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { MealCard, type MealSlot } from '@/components/meal-card'
+import { NutritionChart } from '@/components/nutrition-chart'
 import { PERSONA_LIST } from '@/lib/personas'
 import type {
   DbMealPlan,
@@ -142,6 +143,8 @@ export function WeekCalendar({
           まだ今週の献立がありません。「献立を生成」を押してください。
         </p>
       )}
+
+      {plan && <NutritionChart week={week} recipeMap={recipeMap} />}
 
       <div className="flex flex-col gap-4">
         {DAY_LABELS.map((label, dayIdx) => {

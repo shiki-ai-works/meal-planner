@@ -129,6 +129,16 @@ export interface DbPantryTemplate {
   items: PantryTemplateItem[]
 }
 
+export interface DbInventory {
+  id: string
+  user_id: string
+  ingredient_name: string
+  amount: number | null
+  unit: string | null
+  expiry_date: string | null
+  added_at: string
+}
+
 export interface DbConditionFlag {
   id: string
   user_id: string
