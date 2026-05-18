@@ -6,6 +6,8 @@ import type { DbRecipe, WeekPlan, DayMeals } from '@/types/database'
 interface Props {
   week: WeekPlan
   recipeMap: Map<string, DbRecipe>
+  targetCalories?: number
+  targetPfc?: { protein: number; fat: number; carbs: number }
 }
 
 const DAY_LABELS = ['月', '火', '水', '木', '金', '土', '日']
@@ -41,7 +43,12 @@ function calcDay(day: DayMeals, recipeMap: Map<string, DbRecipe>): DayNutrition 
   return n
 }
 
-export function NutritionChart({ week, recipeMap }: Props) {
+export function NutritionChart({
+  week,
+  recipeMap,
+  targetCalories = 2000,
+  targetPfc = { protein: 20, fat: 25, carbs: 55 },
+}: Props) {
   const { perDay, total, pfcRatio, avgKcal } = useMemo(() => {
     const perDay: DayNutrition[] = []
     const total = emptyNutrition()
@@ -69,7 +76,7 @@ export function NutritionChart({ week, recipeMap }: Props) {
   }, [week, recipeMap])
 
   const maxKcal = Math.max(...perDay.map((d) => d.calories), 1)
-  const targetKcal = 2000
+  const targetKcal = targetCalories
 
   return (
     <div className="hud-border bg-card p-3 flex flex-col gap-3">
@@ -82,7 +89,12 @@ export function NutritionChart({ week, recipeMap }: Props) {
       </div>
 
       <div>
-        <div className="text-xs text-muted mb-1">PFCバランス (kcal比)</div>
+        <div className="text-xs text-muted mb-1 flex justify-between">
+          <span>PFCバランス (kcal比)</span>
+          <span className="font-mono">
+            目標 {targetPfc.protein}/{targetPfc.fat}/{targetPfc.carbs}
+          </span>
+        </div>
         <div className="flex h-3 w-full overflow-hidden rounded border border-card-border">
           <div
             className="bg-accent"
@@ -99,6 +111,23 @@ export function NutritionChart({ week, recipeMap }: Props) {
             style={{ width: `${pfcRatio.c}%` }}
             title={`C ${pfcRatio.c.toFixed(0)}%`}
           />
+        </div>
+        {/* 目標値マーカー */}
+        <div className="relative h-1 mt-0.5">
+          <span
+            className="absolute -translate-x-1/2 text-[8px] text-muted"
+            style={{ left: `${targetPfc.protein}%` }}
+            aria-hidden
+          >
+            ▲
+          </span>
+          <span
+            className="absolute -translate-x-1/2 text-[8px] text-muted"
+            style={{ left: `${targetPfc.protein + targetPfc.fat}%` }}
+            aria-hidden
+          >
+            ▲
+          </span>
         </div>
         <div className="flex justify-between text-[10px] font-mono mt-1 text-muted">
           <span>
@@ -139,7 +168,7 @@ export function NutritionChart({ week, recipeMap }: Props) {
           })}
         </div>
         <div className="text-[10px] text-muted mt-1 text-right">
-          目標 {targetKcal} kcal/日
+          目標 {targetKcal.toLocaleString()} kcal/日
         </div>
       </div>
     </div>

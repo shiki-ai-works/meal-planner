@@ -58,6 +58,12 @@ export default async function DashboardPage() {
         initialPlan={plan}
         recipes={recipes}
         initialPersonaId={dbUser?.selected_persona ?? 'mei'}
+        targetCalories={dbUser?.target_calories ?? 2000}
+        targetPfc={{
+          protein: dbUser?.target_pfc_protein ?? 20,
+          fat: dbUser?.target_pfc_fat ?? 25,
+          carbs: dbUser?.target_pfc_carbs ?? 55,
+        }}
       />
     </div>
   )

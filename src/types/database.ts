@@ -50,8 +50,21 @@ export interface DbUser {
   disliked_ingredients: string[]
   allergic_ingredients: string[]
   selected_persona: PersonaId
+  target_calories: number
+  target_pfc_protein: number // 10-30
+  target_pfc_fat: number // 15-35
+  target_pfc_carbs: number // 40-70
   created_at: string
 }
+
+// PFCバランスの許容範囲（各栄養素 % の min/max）
+export const PFC_RANGE = {
+  protein: { min: 10, max: 30 },
+  fat: { min: 15, max: 35 },
+  carbs: { min: 40, max: 70 },
+} as const
+
+export const CALORIE_RANGE = { min: 1000, max: 4000 } as const
 
 export interface DbRecipe {
   id: string

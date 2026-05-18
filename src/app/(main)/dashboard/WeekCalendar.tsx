@@ -21,6 +21,8 @@ interface Props {
   initialPlan: DbMealPlan | null
   recipes: DbRecipe[]
   initialPersonaId: PersonaId
+  targetCalories: number
+  targetPfc: { protein: number; fat: number; carbs: number }
 }
 
 function emptyDay(): DayMeals {
@@ -70,6 +72,8 @@ export function WeekCalendar({
   initialPlan,
   recipes,
   initialPersonaId,
+  targetCalories,
+  targetPfc,
 }: Props) {
   const router = useRouter()
   const [plan, setPlan] = useState<DbMealPlan | null>(initialPlan)
@@ -144,7 +148,14 @@ export function WeekCalendar({
         </p>
       )}
 
-      {plan && <NutritionChart week={week} recipeMap={recipeMap} />}
+      {plan && (
+        <NutritionChart
+          week={week}
+          recipeMap={recipeMap}
+          targetCalories={targetCalories}
+          targetPfc={targetPfc}
+        />
+      )}
 
       <div className="flex flex-col gap-4">
         {DAY_LABELS.map((label, dayIdx) => {
