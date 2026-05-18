@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+:root {
+  /* Blue Archive風パステル + HUD的アクセント（ライトモード） */
+  --background: #f0f4ff;
+  --foreground: #1a1f2e;
+  --card: #ffffff;
+  --card-border: #c5d0f0;
+  --accent: #4f7bff;
+  --accent-hover: #3d65e8;
+  --muted: #6b7a9d;
+  --danger: #ef4444;
+  --success: #22c55e;
+  --warning: #f59e0b;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-border: var(--card-border);
+  --color-accent: var(--accent);
+  --color-muted: var(--muted);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+}
+
+.dark {
+  --background: #0d1117;
+  --foreground: #e2e8ff;
+  --card: #161b2e;
+  --card-border: #2a3356;
+  --accent: #5b8aff;
+  --accent-hover: #4a75f0;
+  --muted: #8a9cc5;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', sans-serif;
+  min-height: 100vh;
+}
+
+/* HUD風スタイル */
+.hud-border {
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  position: relative;
+}
+
+.hud-border::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 16px;
+  right: 16px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 0 0 2px 2px;
+}
