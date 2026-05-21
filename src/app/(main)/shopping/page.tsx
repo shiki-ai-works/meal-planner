@@ -1,9 +1,11 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { buildShoppingList } from '@/lib/shopping-list'
 import type {
   DbInventory,
   DbMealPlan,
+  DbPantryTemplate,
   DbRecipe,
   DbUser,
   WeekPlan,
@@ -29,7 +31,7 @@ export default async function ShoppingPage() {
 
   const weekStartDate = getMondayISO(new Date())
 
-  const [userRes, recipesRes, planRes, invRes] = await Promise.all([
+  const [userRes, recipesRes, planRes, invRes, pantryRes] = await Promise.all([
     supabase.from('users').select('*').eq('id', user.id).single(),
     supabase.from('recipes').select('*'),
     supabase
@@ -42,12 +44,19 @@ export default async function ShoppingPage() {
       .limit(1)
       .maybeSingle(),
     supabase.from('inventory').select('*').eq('user_id', user.id),
+    supabase
+      .from('pantry_templates')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle(),
   ])
 
   const dbUser = (userRes.data ?? null) as DbUser | null
   const recipes = (recipesRes.data ?? []) as DbRecipe[]
   const plan = (planRes.data ?? null) as DbMealPlan | null
   const inventory = (invRes.data ?? []) as DbInventory[]
+  const pantry = (pantryRes.data ?? null) as DbPantryTemplate | null
+  const pantryItems = pantry?.items ?? []
 
   const recipeMap = new Map<string, DbRecipe>()
   for (const r of recipes) recipeMap.set(r.id, r)
@@ -59,12 +68,21 @@ export default async function ShoppingPage() {
         servings: dbUser?.default_servings ?? 2,
         weekStartDate,
         inventory,
+        pantryItems,
       })
     : null
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6">
-      <h1 className="text-xl font-bold mb-4">🛒 買い物リスト</h1>
+      <div className="flex items-baseline justify-between mb-4">
+        <h1 className="text-xl font-bold">🛒 買い物リスト</h1>
+        <Link
+          href="/pantry"
+          className="text-[10px] text-muted hover:text-accent"
+        >
+          🥢 常備品 ({pantryItems.length})
+        </Link>
+      </div>
       {grouped ? (
         <ShoppingClient weekStartDate={weekStartDate} grouped={grouped} />
       ) : (

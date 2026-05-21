@@ -3,6 +3,7 @@ import type {
   DbInventory,
   DbRecipe,
   Ingredient,
+  PantryTemplateItem,
   WeekPlan,
 } from '@/types/database'
 
@@ -58,6 +59,11 @@ interface BuildOpts {
   weekStartDate: string // ISO YYYY-MM-DD (月曜)
   now?: Date
   inventory?: DbInventory[]
+  pantryItems?: PantryTemplateItem[]
+}
+
+function normalizeName(s: string): string {
+  return s.trim().toLowerCase().normalize('NFKC')
 }
 
 function addDays(iso: string, days: number): Date {
@@ -78,7 +84,9 @@ export function buildShoppingList({
   weekStartDate,
   now = new Date(),
   inventory = [],
+  pantryItems = [],
 }: BuildOpts): Record<Ingredient['category'], ShoppingItem[]> {
+  const pantrySet = new Set(pantryItems.map((p) => normalizeName(p.name)))
   const merged = new Map<string, ShoppingItem>()
 
   for (let d = 0; d < 7; d++) {
@@ -134,6 +142,7 @@ export function buildShoppingList({
     その他: [],
   }
   for (const item of merged.values()) {
+    if (pantrySet.has(normalizeName(item.ingredient_name))) continue
     if (item.amount <= 0 && item.consumed <= 0) continue
     item.amount = Math.round(item.amount * 10) / 10
     item.consumed = Math.round(item.consumed * 10) / 10
