@@ -1,10 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useState, useTransition } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { MealCard, type MealSlot } from '@/components/meal-card'
-import { NutritionChart } from '@/components/nutrition-chart'
 import { PERSONA_LIST } from '@/lib/personas'
 import type {
   DbMealPlan,
@@ -16,30 +14,12 @@ import type {
 
 const DAY_LABELS = ['月', '火', '水', '木', '金', '土', '日']
 const SLOTS: MealSlot[] = ['breakfast', 'lunch', 'dinner']
-const SLOT_LABEL: Record<MealSlot, string> = {
-  breakfast: '朝',
-  lunch: '昼',
-  dinner: '夜',
-}
-
-type EatingOutKey =
-  | 'is_eating_out_breakfast'
-  | 'is_eating_out_lunch'
-  | 'is_eating_out_dinner'
-
-const EATING_OUT_KEY: Record<MealSlot, EatingOutKey> = {
-  breakfast: 'is_eating_out_breakfast',
-  lunch: 'is_eating_out_lunch',
-  dinner: 'is_eating_out_dinner',
-}
 
 interface Props {
   weekStartDate: string
   initialPlan: DbMealPlan | null
   recipes: DbRecipe[]
   initialPersonaId: PersonaId
-  targetCalories: number
-  targetPfc: { protein: number; fat: number; carbs: number }
 }
 
 function emptyDay(): DayMeals {
@@ -89,22 +69,12 @@ export function WeekCalendar({
   initialPlan,
   recipes,
   initialPersonaId,
-  targetCalories,
-  targetPfc,
 }: Props) {
   const router = useRouter()
-  const supabase = useMemo(() => createClient(), [])
   const [plan, setPlan] = useState<DbMealPlan | null>(initialPlan)
   const [personaId, setPersonaId] = useState<PersonaId>(initialPersonaId)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!toast) return
-    const id = setTimeout(() => setToast(null), 2200)
-    return () => clearTimeout(id)
-  }, [toast])
 
   const recipeMap = useMemo(() => {
     const m = new Map<string, DbRecipe>()
@@ -134,41 +104,6 @@ export function WeekCalendar({
         setError(e instanceof Error ? e.message : '生成に失敗しました')
       }
     })
-  }
-
-  async function toggleEatingOut(dayIdx: number, slot: MealSlot) {
-    if (!plan) {
-      setToast('まず献立を生成してください')
-      return
-    }
-    setError(null)
-
-    const key = EATING_OUT_KEY[slot]
-    const prevPlan = plan
-    const newWeek: WeekPlan = { ...plan.plan }
-    const day: DayMeals = { ...(newWeek[dayIdx] ?? emptyDay()) }
-    day[key] = !day[key]
-    newWeek[dayIdx] = day
-
-    const newPlan: DbMealPlan = { ...plan, plan: newWeek }
-    setPlan(newPlan)
-
-    const { error: updErr } = await supabase
-      .from('meal_plans')
-      .update({ plan: newWeek })
-      .eq('id', plan.id)
-
-    if (updErr) {
-      setError(updErr.message)
-      setPlan(prevPlan)
-      setToast('変更を保存できませんでした')
-      return
-    }
-
-    setToast(
-      `${DAY_LABELS[dayIdx]}曜${SLOT_LABEL[slot]}を${day[key] ? '外食' : '手作り'}に変更しました`,
-    )
-    router.refresh()
   }
 
   return (
@@ -208,19 +143,6 @@ export function WeekCalendar({
         </p>
       )}
 
-      {plan && (
-        <NutritionChart
-          week={week}
-          recipeMap={recipeMap}
-          targetCalories={targetCalories}
-          targetPfc={targetPfc}
-        />
-      )}
-
-      <p className="text-xs text-muted text-center -mb-1">
-        カードを<span className="font-bold">長押し</span>で外食 / 手作りを切替
-      </p>
-
       <div className="flex flex-col gap-4">
         {DAY_LABELS.map((label, dayIdx) => {
           const day = week[dayIdx] ?? emptyDay()
@@ -240,7 +162,6 @@ export function WeekCalendar({
                       recipe={recipe}
                       isLocked={f.locked}
                       isEatingOut={f.eatingOut}
-                      onToggleEatingOut={() => toggleEatingOut(dayIdx, slot)}
                     />
                   )
                 })}
@@ -249,16 +170,6 @@ export function WeekCalendar({
           )
         })}
       </div>
-
-      {toast && (
-        <div
-          className="fixed left-1/2 bottom-20 -translate-x-1/2 bg-foreground text-background px-4 py-2 rounded-full text-sm shadow-lg z-50"
-          role="status"
-          aria-live="polite"
-        >
-          {toast}
-        </div>
-      )}
     </div>
   )
 }
