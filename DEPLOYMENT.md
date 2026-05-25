@@ -53,6 +53,23 @@ secret key や service_role key は、ブラウザへ公開される環境変数
 
 Vercel は Next.js の verified adapter 対応先です。verified adapter は、Next.js 側の互換性検査を通す対象として扱われる adapter のことです。
 
+このリポジトリには、本番 deploy と公開後 E2E をまとめて実行する script もあります。script は小さな手順書つきの自動係で、`.env.local` か shell の環境変数を読みます。
+
+```powershell
+npm run deploy:production
+```
+
+必要な値は次です。token は CLI に渡す認証用の鍵です。Git には commit しません。
+
+```env
+VERCEL_TOKEN=...
+VERCEL_PROJECT_ID=...
+# team project の場合だけ
+VERCEL_ORG_ID=...
+```
+
+`.vercel/project.json` が無い場合は、`VERCEL_PROJECT_ID` または `VERCEL_PROJECT_NAME` を設定してください。この script は、Vercel CLI が日本語の端末名を HTTP header に入れて失敗する場合にも、実行中だけ ASCII の端末名へ置き換えます。HTTP header は、通信時にソフトや条件を相手へ伝える短い札のようなものです。
+
 1. Vercel CLI にログインします。
 
 ```powershell
