@@ -487,6 +487,36 @@ withTempWorkspace((cwd) => {
 withTempWorkspace((cwd) => {
   writeSeedMigrations(cwd)
   writeActualManifest(cwd)
+  writeSourceNotes(cwd, [
+    {
+      recipe: 'Breakfast Rice',
+      image_url: 'https://images.local/breakfast-rice.jpg',
+      source_page_url: 'https://sources.local/breakfast-rice',
+      author: 'See source page',
+      license: 'See source page',
+      fit: 'exact',
+    },
+    {
+      recipe: 'Dinner Soup',
+      image_url: 'https://images.local/dinner-soup.jpg',
+      source_page_url: 'https://sources.local/dinner-soup',
+      author: 'Test Author',
+      license: 'CC BY 4.0',
+      fit: 'close',
+    },
+  ])
+
+  const result = runRecipeImageScript(cwd, ['--sources-check'])
+  assert(result.status === 0, 'placeholder attribution warning should not fail source notes check')
+  assert(
+    result.stderr.includes('Breakfast Rice'),
+    'placeholder attribution warning should name the recipe to review',
+  )
+})
+
+withTempWorkspace((cwd) => {
+  writeSeedMigrations(cwd)
+  writeActualManifest(cwd)
   writeSourceNotes(cwd)
 
   const result = runRecipeImageScript(cwd, ['--sources-check'])

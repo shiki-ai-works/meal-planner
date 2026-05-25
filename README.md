@@ -290,7 +290,7 @@ actual manifest を既定の相手にする短縮コマンドもあります。
 npm.cmd run recipe-images:actual-check
 ```
 
-実 URL の出典メモも確認できます。sources は出典という意味で、`recipe` / `image_url` / `source_page_url` / `author` / `license` / `fit` を持つ JSON です。この検査では、actual manifest の全 `image_urls` に対応する source note（出典メモ）があるか、source note 側に余計な URL が混ざっていないかを見ます。`fit` は画像が料理そのものにどれくらい合うかの目印で、`exact` / `close` / `representative` を使います。
+実 URL の出典メモも確認できます。sources は出典という意味で、`recipe` / `image_url` / `source_page_url` / `author` / `license` / `fit` を持つ JSON です。この検査では、actual manifest の全 `image_urls` に対応する source note（出典メモ）があるか、source note 側に余計な URL が混ざっていないかを見ます。`fit` は画像が料理そのものにどれくらい合うかの目印で、`exact` / `close` / `representative` を使います。author / license に `See ...` のような再確認メモが残っている場合は、warning に対象 recipe 名も出します。
 
 ```powershell
 npm.cmd run recipe-images:sources-check

@@ -25,6 +25,7 @@
 - `supabase/migrations/007_recipe_images.sql` を生成。
 - Supabase SQL Editor で migration を適用済み。
 - 検証 SQL で 35 件すべて一致、60 recipe row に expected URL が入ったことを確認済み。
+- `recipe-images:sources-check` は出典メモの placeholder attribution warning に対象 recipe 名を出す。
 
 ### UI改善
 
@@ -60,6 +61,7 @@
 
 ```powershell
 npm.cmd run check
+npm.cmd run recipe-images:sources-check
 ```
 
 `npm.cmd run check` の中身:
@@ -70,6 +72,10 @@ npm.cmd run check
 - `typecheck`
 - `lint`
 - `build`
+
+`recipe-images:sources-check` は pass する。author / license の再確認 warning が残る場合は、warning 行に対象 recipe 名が出る。
+
+PROGRESS_91 では dev server を検証セッション側で起動し、`http://localhost:3000/setup` が HTTP 200 を返すことを確認済み。Browser API の navigation は timeout したため、画面確認は既存の確認結果と HTTP 応答確認に留めている。
 
 ブラウザ確認済み:
 
@@ -115,7 +121,7 @@ npm.cmd run check
 
 ## Git状態の注意
 
-`D:\Codex\meal-planner` 本体には大量の未コミット変更がある。これは連続作業で積み上がったもの。
+`D:\Codex\meal-planner` 本体は、PROGRESS_91 の source notes warning 表示変更が未コミット。作業前は clean だった。
 
 重要:
 
@@ -137,10 +143,11 @@ npm.cmd run check
 ## 次にやるなら
 
 1. タイトルを画像素材に置き換える時は、`app-title-shadow` を削るか、画像用の別スタイルへ移行する。
-2. 料理詳細の「つかんで入れる」「つかんで外す」の言葉を、必要ならさらに柔らかくする。
-3. 調理工程写真を入れる場合は、まず利用可能な実画像を探し、出典・作者・ライセンスを控える。
-4. 使える工程写真がない場合は、生成画像で統一感を出す。
-5. 本体コミットを作る場合は、画像 workflow、UI改善、タイトル仮デザインを分けて整理する。
+2. `recipe-images:sources-check` の warning 対象 recipe について、source page の author / license を確認する。
+3. 料理詳細の「つかんで入れる」「つかんで外す」の言葉を、必要ならさらに柔らかくする。
+4. 調理工程写真を入れる場合は、まず利用可能な実画像を探し、出典・作者・ライセンスを控える。
+5. 使える工程写真がない場合は、生成画像で統一感を出す。
+6. 本体コミットを作る場合は、画像 workflow、UI改善、タイトル仮デザインを分けて整理する。
 
 ## 公開準備メモ
 

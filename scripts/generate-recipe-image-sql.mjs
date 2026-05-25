@@ -467,12 +467,14 @@ function validateSourceNotes(actualRecipes, sourceNotes) {
       sourceCount: 0,
       expectedUrlCount: actualEntries.length,
       placeholderAttributionCount: 0,
+      placeholderAttributionRecipes: [],
     }
   }
 
   const seenKeys = new Set()
   const allowedFits = new Set(['exact', 'close', 'representative'])
   let placeholderAttributionCount = 0
+  const placeholderAttributionRecipes = []
 
   sourceNotes.sources.forEach((source, index) => {
     const label = `sources[${index}]`
@@ -506,6 +508,7 @@ function validateSourceNotes(actualRecipes, sourceNotes) {
 
     if (author.startsWith('See ') || license.startsWith('See ')) {
       placeholderAttributionCount++
+      if (recipeName) placeholderAttributionRecipes.push(recipeName)
     }
 
     if (!recipeName || !imageUrl) return
@@ -531,7 +534,7 @@ function validateSourceNotes(actualRecipes, sourceNotes) {
 
   if (placeholderAttributionCount > 0) {
     warnings.push(
-      `${placeholderAttributionCount} source note(s) still ask the reviewer to inspect the source page for attribution/license details`,
+      `${placeholderAttributionCount} source note(s) still ask the reviewer to inspect the source page for attribution/license details: ${formatNameList(placeholderAttributionRecipes)}`,
     )
   }
 
@@ -541,7 +544,14 @@ function validateSourceNotes(actualRecipes, sourceNotes) {
     sourceCount: sourceNotes.sources.length,
     expectedUrlCount: actualEntries.length,
     placeholderAttributionCount,
+    placeholderAttributionRecipes,
   }
+}
+
+function formatNameList(values, { limit = 12 } = {}) {
+  if (values.length <= limit) return values.join(', ')
+
+  return `${values.slice(0, limit).join(', ')} (+${values.length - limit} more)`
 }
 
 function runActualSourcesCheck() {

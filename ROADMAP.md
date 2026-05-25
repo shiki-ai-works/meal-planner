@@ -3,7 +3,7 @@
 > プロジェクト全体の中長期計画。**「次に何をやるか」と「将来どこに向かうか」**を 1 ファイルで把握。
 > セッションごとの細かい進捗は `progress/PROGRESS_NN.md`、メモリ運用は Claude 側の `project_meal_planner.md` を参照。
 
-**最終更新:** 2026-05-25 (PROGRESS_90 時点。公開準備と E2E 導線まで反映)
+**最終更新:** 2026-05-25 (PROGRESS_91 時点。source notes warning 対象表示まで反映)
 
 ---
 
@@ -382,6 +382,10 @@ Phase 4 (将来構想)     💭 アイデア
   - signup に利用規約とプライバシーポリシーの確認 checkbox を追加
   - `npm run e2e:public` で公開前の主要導線を確認可能にした
   - `DEPLOYMENT.md` に本番 Supabase、Vercel、公開後確認の手順を追加
+- ✅ source notes warning 対象表示（PROGRESS_91）
+  - `recipe-images:sources-check` の placeholder attribution warning に対象 recipe 名を表示
+  - warning が exit code 0 のまま、修正対象を直接追えるようにした
+  - 自己検査で placeholder warning に recipe 名が含まれることを確認
 
 ### 進行中 🚧
 - 🚧 **タイトル仮デザイン**
@@ -462,8 +466,8 @@ Phase 4 (将来構想)     💭 アイデア
 ## いま向かっている方向（"Now / Next / Later"）
 
 ### Now（このイテレーション）
+- `recipe-images:sources-check` の attribution warning を対象 recipe 名つきで確認する
 - 仮タイトル「完全栄養ランダム献立達人」の状態を維持しつつ、最終ロゴ化の方針を決める
-- 料理詳細の「つかんで入れる」「つかんで外す」の言葉を、必要ならさらに柔らかくする
 - 実データで `/recipes`、レシピ詳細、設定画面の固定導線を追加確認する
 - 変更後は `npm run check` / `git diff --check` / ブラウザ確認
 
@@ -511,6 +515,7 @@ npm run dev
 
 ## 関連ドキュメント
 
+- [`progress/PROGRESS_91.md`](progress/PROGRESS_91.md) — source notes warning 対象表示
 - [`progress/PROGRESS_90.md`](progress/PROGRESS_90.md) — 公開準備と E2E 導線
 - [`progress/PROGRESS_89.md`](progress/PROGRESS_89.md) — 仮タイトル確定と現在地の整理
 - [`progress/PROGRESS_88.md`](progress/PROGRESS_88.md) — 画像 URL source notes 検査
