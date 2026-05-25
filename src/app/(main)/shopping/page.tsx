@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { buildShoppingList } from '@/lib/shopping-list'
+import { getMondayISO } from '@/lib/week-plan'
 import type {
   DbInventory,
   DbMealPlan,
@@ -11,16 +12,6 @@ import type {
   WeekPlan,
 } from '@/types/database'
 import { ShoppingClient } from './ShoppingClient'
-
-function getMondayISO(d: Date): string {
-  const dayIdx = (d.getDay() + 6) % 7
-  const monday = new Date(d)
-  monday.setDate(d.getDate() - dayIdx)
-  const y = monday.getFullYear()
-  const m = String(monday.getMonth() + 1).padStart(2, '0')
-  const day = String(monday.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
 
 export default async function ShoppingPage() {
   const supabase = await createClient()

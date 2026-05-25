@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: '超献立プランナー',
+  title: '完全栄養ランダム献立達人',
   description: '1週間分の献立を栄養バランスを考慮しながら自動生成するWebアプリ',
 }
 

@@ -1,17 +1,8 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getMondayISO } from '@/lib/week-plan'
 import type { DbMealPlan, DbRecipe, DbUser } from '@/types/database'
 import { WeekCalendar } from './WeekCalendar'
-
-function getMondayISO(d: Date): string {
-  const dayIdx = (d.getDay() + 6) % 7
-  const monday = new Date(d)
-  monday.setDate(d.getDate() - dayIdx)
-  const y = monday.getFullYear()
-  const m = String(monday.getMonth() + 1).padStart(2, '0')
-  const day = String(monday.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -44,7 +35,12 @@ export default async function DashboardPage() {
     <div className="max-w-lg mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-xl font-bold">超献立プランナー</h1>
+          <h1
+            className="app-title-shadow text-2xl font-bold leading-tight text-accent"
+            data-title="完全栄養ランダム献立達人"
+          >
+            完全栄養ランダム献立達人
+          </h1>
           <p className="text-xs text-muted">{user.email}</p>
         </div>
         <div className="text-xs text-muted text-right">

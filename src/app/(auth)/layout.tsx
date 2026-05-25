@@ -6,8 +6,11 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-2">
             <span className="text-3xl">🍱</span>
-            <h1 className="text-2xl font-bold text-[var(--accent)] tracking-tight">
-              超献立プランナー
+            <h1
+              className="app-title-shadow text-3xl font-bold leading-tight text-[var(--accent)]"
+              data-title="完全栄養ランダム献立達人"
+            >
+              完全栄養ランダム献立達人
             </h1>
           </div>
           <p className="text-sm text-[var(--muted)]">

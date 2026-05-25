@@ -23,16 +23,25 @@
 # misc
 .DS_Store
 *.pem
+.codegraph/
+.codex-*
+/*-verify.png
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+dev-server*.log
 
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
+
+# local recipe image URL working files
+/supabase/recipe-images.actual.json
+/supabase/recipe-images.todo.md
+/supabase/recipe-images.sources.json
 
 # vercel
 .vercel

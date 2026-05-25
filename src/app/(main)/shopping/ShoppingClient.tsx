@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react'
 import { CATEGORY_EMOJI, CATEGORY_ORDER, type ShoppingItem } from '@/lib/shopping-list'
 import type { Ingredient } from '@/types/database'
 
 const STORAGE_PREFIX = 'meal-planner:basket:'
+const BASKET_CHANGE_EVENT = 'meal-planner:basket-change'
 
 interface Props {
   weekStartDate: string
@@ -19,6 +20,30 @@ function itemKey(it: ShoppingItem) {
   return `${it.ingredient_name}__${it.unit}`
 }
 
+function readBasketSnapshot(storageKey: string) {
+  if (typeof window === 'undefined') return '[]'
+  return localStorage.getItem(storageKey) ?? '[]'
+}
+
+function parseBasketSnapshot(snapshot: string) {
+  try {
+    const arr = JSON.parse(snapshot)
+    if (!Array.isArray(arr)) return new Set<string>()
+    return new Set(arr.filter((x): x is string => typeof x === 'string'))
+  } catch {
+    return new Set<string>()
+  }
+}
+
+function saveBasketSnapshot(storageKey: string, values: Set<string>) {
+  try {
+    localStorage.setItem(storageKey, JSON.stringify([...values]))
+    window.dispatchEvent(new CustomEvent<string>(BASKET_CHANGE_EVENT, { detail: storageKey }))
+  } catch {
+    // ignore (容量超過等)
+  }
+}
+
 export function ShoppingClient({ weekStartDate, grouped }: Props) {
   const flat = useMemo(() => {
     const list: ShoppingItem[] = []
@@ -27,59 +52,54 @@ export function ShoppingClient({ weekStartDate, grouped }: Props) {
   }, [grouped])
 
   const storageKey = `${STORAGE_PREFIX}${weekStartDate}`
-  const [inBasket, setInBasket] = useState<Set<string>>(new Set())
-  const [hydrated, setHydrated] = useState(false)
-
-  // localStorage から復元
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(storageKey)
-      if (raw) {
-        const arr = JSON.parse(raw)
-        if (Array.isArray(arr)) setInBasket(new Set(arr.filter((x) => typeof x === 'string')))
+  const subscribeBasket = useCallback(
+    (onStoreChange: () => void) => {
+      function onStorage(event: StorageEvent) {
+        if (event.key === storageKey) onStoreChange()
       }
-    } catch {
-      // ignore
-    }
-    setHydrated(true)
-  }, [storageKey])
+
+      function onLocalChange(event: Event) {
+        if ((event as CustomEvent<string>).detail === storageKey) onStoreChange()
+      }
+
+      window.addEventListener('storage', onStorage)
+      window.addEventListener(BASKET_CHANGE_EVENT, onLocalChange)
+      return () => {
+        window.removeEventListener('storage', onStorage)
+        window.removeEventListener(BASKET_CHANGE_EVENT, onLocalChange)
+      }
+    },
+    [storageKey],
+  )
+
+  const basketSnapshot = useSyncExternalStore(
+    subscribeBasket,
+    () => readBasketSnapshot(storageKey),
+    () => '[]',
+  )
+  const inBasket = useMemo(() => parseBasketSnapshot(basketSnapshot), [basketSnapshot])
 
   // 消費完了したキーは自動で外す（取り消し線が外れたら永続化対象から除外）
   useEffect(() => {
-    if (!hydrated) return
-    setInBasket((prev) => {
-      let changed = false
-      const next = new Set(prev)
-      for (const it of flat) {
-        if (it.consumed >= it.amount && it.amount > 0) {
-          const k = itemKey(it)
-          if (next.has(k)) {
-            next.delete(k)
-            changed = true
-          }
+    let changed = false
+    const next = new Set(inBasket)
+    for (const it of flat) {
+      if (it.consumed >= it.amount && it.amount > 0) {
+        const k = itemKey(it)
+        if (next.has(k)) {
+          next.delete(k)
+          changed = true
         }
       }
-      return changed ? next : prev
-    })
-  }, [flat, hydrated])
-
-  // 変更を保存
-  useEffect(() => {
-    if (!hydrated) return
-    try {
-      localStorage.setItem(storageKey, JSON.stringify([...inBasket]))
-    } catch {
-      // ignore (容量超過等)
     }
-  }, [inBasket, hydrated, storageKey])
+    if (changed) saveBasketSnapshot(storageKey, next)
+  }, [flat, inBasket, storageKey])
 
   function toggleBasket(k: string) {
-    setInBasket((prev) => {
-      const next = new Set(prev)
-      if (next.has(k)) next.delete(k)
-      else next.add(k)
-      return next
-    })
+    const next = new Set(inBasket)
+    if (next.has(k)) next.delete(k)
+    else next.add(k)
+    saveBasketSnapshot(storageKey, next)
   }
 
   const total = flat.length

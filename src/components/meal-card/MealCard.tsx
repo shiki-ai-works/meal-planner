@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import type { CSSProperties } from 'react'
-import { cuisineBorderColor, fallbackEmoji } from '@/lib/cuisine'
+import type { CSSProperties, KeyboardEvent } from 'react'
+import { cuisineBackground, cuisineBorderColor, fallbackEmoji } from '@/lib/cuisine'
 import { useLongPress } from '@/hooks/useLongPress'
 import type { DbRecipe, MealType } from '@/types/database'
 
@@ -14,6 +14,9 @@ export interface MealCardProps {
   isLocked?: boolean
   isEatingOut?: boolean
   onToggleEatingOut?: () => void
+  onToggleLocked?: () => void
+  href?: string | null
+  onSelect?: () => void
 }
 
 const SLOT_LABEL: Record<MealSlot, string> = {
@@ -27,12 +30,19 @@ const GRADIENT_OVERLAY =
 const EATING_OUT_TINT =
   'linear-gradient(180deg, rgba(245,158,11,0.35) 0%, rgba(0,0,0,0.55) 100%)'
 
+function firstImageUrl(urls: string[] | null | undefined) {
+  return urls?.find((url) => url.trim().length > 0)?.trim() ?? null
+}
+
 export function MealCard({
   slot,
   recipe,
   isLocked = false,
   isEatingOut = false,
   onToggleEatingOut,
+  onToggleLocked,
+  href,
+  onSelect,
 }: MealCardProps) {
   const longPress = useLongPress({
     onLongPress: () => {
@@ -41,7 +51,7 @@ export function MealCard({
   })
 
   const borderColor = cuisineBorderColor(recipe?.cuisine_genre ?? null)
-  const photoUrl = recipe?.image_urls?.[0] ?? null
+  const photoUrl = firstImageUrl(recipe?.image_urls)
   const emoji = fallbackEmoji(recipe?.cuisine_genre ?? null, slot)
 
   const hasRecipe = !!recipe
@@ -56,14 +66,16 @@ export function MealCard({
   } else if (showAsEmpty) {
     bgStyle.backgroundColor = '#ffffff'
   } else {
-    bgStyle.backgroundColor = '#fef3e2'
+    bgStyle.backgroundImage = cuisineBackground(recipe?.cuisine_genre ?? null)
   }
 
   const baseClass = [
     'hud-border relative overflow-hidden block w-full text-left',
-    'aspect-square min-h-[120px]',
+    'aspect-[16/9] min-h-[116px] sm:aspect-square sm:min-h-[120px]',
     'border-l-4',
-    'transition-transform duration-150 active:scale-[0.97]',
+    'shadow-[0_8px_18px_rgba(26,31,46,0.08)]',
+    'transition-transform duration-150 active:scale-[0.97] hover:-translate-y-0.5',
+    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
     'select-none',
   ].join(' ')
 
@@ -96,18 +108,29 @@ export function MealCard({
         </>
       )}
 
-      <div className="absolute top-1.5 left-2 right-2 flex items-center justify-between text-[11px] z-10">
+      <div className="pointer-events-none absolute top-1.5 left-2 right-2 z-10 flex items-center justify-between text-[11px]">
         <span className="bg-white/85 text-foreground px-2 py-0.5 rounded-full font-bold tracking-wider backdrop-blur-sm">
           {SLOT_LABEL[slot]}
         </span>
-        <div className="flex gap-1">
-          {isLocked && (
-            <span
-              className="bg-black/45 text-white px-1.5 py-0.5 rounded-full backdrop-blur-sm"
-              title="ロック中"
+        <div className="flex items-center gap-1">
+          {onToggleLocked && (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                onToggleLocked()
+              }}
+              className={`pointer-events-auto grid h-7 w-7 place-items-center rounded-full border text-xs backdrop-blur-sm transition ${
+                isLocked
+                  ? 'border-accent bg-accent text-white'
+                  : 'border-white/70 bg-white/86 text-foreground'
+              }`}
+              title={isLocked ? '固定を解除' : 'この枠を固定'}
+              aria-label={`${SLOT_LABEL[slot]}を${isLocked ? '固定解除' : '固定'}`}
             >
-              🔒
-            </span>
+              {isLocked ? '🔒' : '🔓'}
+            </button>
           )}
           {showAsEatingOut && (
             <span
@@ -120,7 +143,7 @@ export function MealCard({
         </div>
       </div>
 
-      <div className="absolute left-2 right-2 bottom-1.5 z-10">
+      <div className="pointer-events-none absolute left-2 right-2 bottom-1.5 z-10">
         {showAsEmpty ? (
           <div className="text-muted text-sm">未定</div>
         ) : (
@@ -162,33 +185,69 @@ export function MealCard({
     onContextMenu: longPress.onContextMenu,
   }
 
-  if (hasRecipe && !showAsEatingOut) {
+  function handleToggleKeyDown(e: KeyboardEvent) {
+    if (!onToggleEatingOut || !e.shiftKey) return
+    if (e.key !== 'Enter' && e.key !== ' ') return
+    e.preventDefault()
+    e.stopPropagation()
+    onToggleEatingOut()
+  }
+
+  function handleButtonClick() {
+    if (longPress.didLongPressRef.current) return
+    onSelect?.()
+  }
+
+  const actionLabel = showAsEatingOut ? '手作りに戻す' : '外食にする'
+  const cardLabel = hasRecipe
+    ? `${SLOT_LABEL[slot]} ${recipe!.name}。Shift Enterで${actionLabel}`
+    : `${SLOT_LABEL[slot]} 未定。Shift Enterで${actionLabel}`
+
+  const recipeHref = href === undefined ? `/recipes/${recipe?.id}` : href
+
+  const clickLayerClass =
+    'absolute inset-0 z-[1] rounded-[7px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
+
+  if (hasRecipe && !showAsEatingOut && recipeHref) {
     return (
-      <Link
-        href={`/recipes/${recipe!.id}`}
+      <div
         style={bgStyle}
-        className={baseClass}
-        onClick={(e) => {
-          if (longPress.didLongPressRef.current) {
-            e.preventDefault()
-            e.stopPropagation()
-          }
-        }}
-        {...pointerHandlers}
+        className={`${baseClass} ${emptyClass}`}
       >
+        <Link
+          href={recipeHref}
+          className={clickLayerClass}
+          aria-label={cardLabel}
+          title="長押し、または Shift+Enter で外食を切替"
+          onClick={(e) => {
+            if (longPress.didLongPressRef.current) {
+              e.preventDefault()
+              e.stopPropagation()
+            }
+          }}
+          onKeyDown={handleToggleKeyDown}
+          {...pointerHandlers}
+        />
         {inner}
-      </Link>
+      </div>
     )
   }
 
   return (
-    <button
-      type="button"
+    <div
       style={bgStyle}
       className={`${baseClass} ${emptyClass}`}
-      {...pointerHandlers}
     >
+      <button
+        type="button"
+        className={clickLayerClass}
+        aria-label={cardLabel}
+        title="長押し、または Shift+Enter で外食を切替"
+        onKeyDown={handleToggleKeyDown}
+        onClick={handleButtonClick}
+        {...pointerHandlers}
+      />
       {inner}
-    </button>
+    </div>
   )
 }

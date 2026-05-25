@@ -1,0 +1,16 @@
+{
+  "recipes": [
+    {
+      "name": "鮭の塩焼き定食",
+      "image_urls": [
+        "https://example.com/recipe-images/salmon-set.webp"
+      ]
+    },
+    {
+      "name": "チキンカレー",
+      "image_urls": [
+        "https://example.com/recipe-images/chicken-curry.webp"
+      ]
+    }
+  ]
+}

@@ -12,6 +12,7 @@
   --danger: #ef4444;
   --success: #22c55e;
   --warning: #f59e0b;
+  --title-shadow: #c5d0f0;
 }
 
 @theme inline {
@@ -34,6 +35,7 @@
   --accent: #5b8aff;
   --accent-hover: #4a75f0;
   --muted: #8a9cc5;
+  --title-shadow: #2a3356;
 }
 
 body {
@@ -59,4 +61,25 @@ body {
   height: 2px;
   background: var(--accent);
   border-radius: 0 0 2px 2px;
+}
+
+.app-title-shadow {
+  display: inline-block;
+  isolation: isolate;
+  position: relative;
+}
+
+.app-title-shadow::after {
+  content: attr(data-title);
+  color: color-mix(in srgb, var(--title-shadow) 78%, transparent);
+  filter: blur(0.5px);
+  left: 0.08em;
+  opacity: 0.74;
+  pointer-events: none;
+  position: absolute;
+  top: 0.58em;
+  transform: perspective(10em) rotateX(62deg) skewX(-18deg) scaleY(0.62);
+  transform-origin: left top;
+  white-space: inherit;
+  z-index: -1;
 }

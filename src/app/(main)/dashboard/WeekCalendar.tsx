@@ -6,6 +6,12 @@ import { createClient } from '@/lib/supabase/client'
 import { MealCard, type MealSlot } from '@/components/meal-card'
 import { NutritionChart } from '@/components/nutrition-chart'
 import { PERSONA_LIST } from '@/lib/personas'
+import {
+  DAY_LABELS,
+  MEAL_SLOT_LABEL,
+  emptyDay,
+  emptyWeek,
+} from '@/lib/week-plan'
 import type {
   DbMealPlan,
   DbRecipe,
@@ -14,23 +20,23 @@ import type {
   WeekPlan,
 } from '@/types/database'
 
-const DAY_LABELS = ['月', '火', '水', '木', '金', '土', '日']
 const SLOTS: MealSlot[] = ['breakfast', 'lunch', 'dinner']
-const SLOT_LABEL: Record<MealSlot, string> = {
-  breakfast: '朝',
-  lunch: '昼',
-  dinner: '夜',
-}
 
 type EatingOutKey =
   | 'is_eating_out_breakfast'
   | 'is_eating_out_lunch'
   | 'is_eating_out_dinner'
+type LockedKey = 'breakfast_locked' | 'lunch_locked' | 'dinner_locked'
 
 const EATING_OUT_KEY: Record<MealSlot, EatingOutKey> = {
   breakfast: 'is_eating_out_breakfast',
   lunch: 'is_eating_out_lunch',
   dinner: 'is_eating_out_dinner',
+}
+const LOCKED_KEY: Record<MealSlot, LockedKey> = {
+  breakfast: 'breakfast_locked',
+  lunch: 'lunch_locked',
+  dinner: 'dinner_locked',
 }
 
 interface Props {
@@ -40,26 +46,6 @@ interface Props {
   initialPersonaId: PersonaId
   targetCalories: number
   targetPfc: { protein: number; fat: number; carbs: number }
-}
-
-function emptyDay(): DayMeals {
-  return {
-    breakfast: null,
-    lunch: null,
-    dinner: null,
-    breakfast_locked: false,
-    lunch_locked: false,
-    dinner_locked: false,
-    is_eating_out_breakfast: false,
-    is_eating_out_lunch: false,
-    is_eating_out_dinner: false,
-  }
-}
-
-function emptyWeek(): WeekPlan {
-  const w: WeekPlan = {}
-  for (let i = 0; i < 7; i++) w[i] = emptyDay()
-  return w
 }
 
 function getSlotFields(day: DayMeals, slot: MealSlot) {
@@ -166,7 +152,42 @@ export function WeekCalendar({
     }
 
     setToast(
-      `${DAY_LABELS[dayIdx]}曜${SLOT_LABEL[slot]}を${day[key] ? '外食' : '手作り'}に変更しました`,
+      `${DAY_LABELS[dayIdx]}曜${MEAL_SLOT_LABEL[slot]}を${day[key] ? '外食' : '手作り'}に変更しました`,
+    )
+    router.refresh()
+  }
+
+  async function toggleLocked(dayIdx: number, slot: MealSlot) {
+    if (!plan) {
+      setToast('まず献立を生成してください')
+      return
+    }
+    setError(null)
+
+    const key = LOCKED_KEY[slot]
+    const prevPlan = plan
+    const newWeek: WeekPlan = { ...plan.plan }
+    const day: DayMeals = { ...(newWeek[dayIdx] ?? emptyDay()) }
+    day[key] = !day[key]
+    newWeek[dayIdx] = day
+
+    const newPlan: DbMealPlan = { ...plan, plan: newWeek }
+    setPlan(newPlan)
+
+    const { error: updErr } = await supabase
+      .from('meal_plans')
+      .update({ plan: newWeek })
+      .eq('id', plan.id)
+
+    if (updErr) {
+      setError(updErr.message)
+      setPlan(prevPlan)
+      setToast('固定状態を保存できませんでした')
+      return
+    }
+
+    setToast(
+      `${DAY_LABELS[dayIdx]}曜${MEAL_SLOT_LABEL[slot]}を${day[key] ? '固定' : '固定解除'}しました`,
     )
     router.refresh()
   }
@@ -218,7 +239,7 @@ export function WeekCalendar({
       )}
 
       <p className="text-xs text-muted text-center -mb-1">
-        カードを<span className="font-bold">長押し</span>で外食 / 手作りを切替
+        カード右上の錠前で固定 / 解除、長押しで外食 / 手作りを切替
       </p>
 
       <div className="flex flex-col gap-4">
@@ -241,6 +262,7 @@ export function WeekCalendar({
                       isLocked={f.locked}
                       isEatingOut={f.eatingOut}
                       onToggleEatingOut={() => toggleEatingOut(dayIdx, slot)}
+                      onToggleLocked={() => toggleLocked(dayIdx, slot)}
                     />
                   )
                 })}

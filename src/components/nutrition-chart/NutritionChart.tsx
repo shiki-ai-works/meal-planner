@@ -1,7 +1,8 @@
 'use client'
 
 import { useMemo } from 'react'
-import type { DbRecipe, WeekPlan, DayMeals } from '@/types/database'
+import { calculateWeekNutrition } from '@/lib/nutrition'
+import type { DbRecipe, WeekPlan } from '@/types/database'
 
 interface Props {
   week: WeekPlan
@@ -11,37 +12,11 @@ interface Props {
 }
 
 const DAY_LABELS = ['月', '火', '水', '木', '金', '土', '日']
-const SLOTS: (keyof Pick<DayMeals, 'breakfast' | 'lunch' | 'dinner'>)[] = [
-  'breakfast',
-  'lunch',
-  'dinner',
-]
-
-interface DayNutrition {
-  calories: number
-  protein: number
-  fat: number
-  carbs: number
-}
-
-function emptyNutrition(): DayNutrition {
-  return { calories: 0, protein: 0, fat: 0, carbs: 0 }
-}
-
-function calcDay(day: DayMeals, recipeMap: Map<string, DbRecipe>): DayNutrition {
-  const n = emptyNutrition()
-  for (const slot of SLOTS) {
-    const id = day[slot]
-    if (!id) continue
-    const r = recipeMap.get(id)
-    if (!r) continue
-    n.calories += r.nutrition.calories
-    n.protein += r.nutrition.protein
-    n.fat += r.nutrition.fat
-    n.carbs += r.nutrition.carbs
-  }
-  return n
-}
+const PFC_LABELS = [
+  { key: 'protein', label: 'タンパク質', colorClass: 'text-accent' },
+  { key: 'fat', label: '脂質', colorClass: 'text-warning' },
+  { key: 'carbs', label: '炭水化物', colorClass: 'text-success' },
+] as const
 
 export function NutritionChart({
   week,
@@ -49,39 +24,18 @@ export function NutritionChart({
   targetCalories = 2000,
   targetPfc = { protein: 20, fat: 25, carbs: 55 },
 }: Props) {
-  const { perDay, total, pfcRatio, avgKcal } = useMemo(() => {
-    const perDay: DayNutrition[] = []
-    const total = emptyNutrition()
-    for (let i = 0; i < 7; i++) {
-      const d = week[i]
-      const n = d ? calcDay(d, recipeMap) : emptyNutrition()
-      perDay.push(n)
-      total.calories += n.calories
-      total.protein += n.protein
-      total.fat += n.fat
-      total.carbs += n.carbs
-    }
-    const pKcal = total.protein * 4
-    const fKcal = total.fat * 9
-    const cKcal = total.carbs * 4
-    const sumKcal = pKcal + fKcal + cKcal || 1
-    const pfcRatio = {
-      p: (pKcal / sumKcal) * 100,
-      f: (fKcal / sumKcal) * 100,
-      c: (cKcal / sumKcal) * 100,
-    }
-    const daysWithFood = perDay.filter((d) => d.calories > 0).length || 1
-    const avgKcal = Math.round(total.calories / daysWithFood)
-    return { perDay, total, pfcRatio, avgKcal }
-  }, [week, recipeMap])
+  const { perDay, total, pfcRatio, avgKcal } = useMemo(
+    () => calculateWeekNutrition(week, recipeMap),
+    [week, recipeMap],
+  )
 
   const maxKcal = Math.max(...perDay.map((d) => d.calories), 1)
   const targetKcal = targetCalories
 
   return (
-    <div className="hud-border bg-card p-3 flex flex-col gap-3">
-      <div className="flex items-baseline justify-between">
-        <h3 className="text-sm font-bold">週の栄養</h3>
+    <div className="hud-border bg-card p-3 flex min-w-0 flex-col gap-3">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+        <h3 className="text-sm font-bold">カロリーバランス</h3>
         <div className="text-xs text-muted">
           1日平均{' '}
           <span className="font-mono text-foreground">{avgKcal}</span> kcal
@@ -89,71 +43,77 @@ export function NutritionChart({
       </div>
 
       <div>
-        <div className="text-xs text-muted mb-1 flex justify-between">
-          <span>PFCバランス (kcal比)</span>
-          <span className="font-mono">
-            目標 {targetPfc.protein}/{targetPfc.fat}/{targetPfc.carbs}
+        <div className="text-xs text-muted mb-1 flex flex-col gap-1 sm:flex-row sm:justify-between">
+          <span>三大栄養素の割合 (kcal比)</span>
+          <span>
+            目標:{' '}
+            <span className="font-mono">
+              タンパク質 {targetPfc.protein}% / 脂質 {targetPfc.fat}% /
+              炭水化物 {targetPfc.carbs}%
+            </span>
           </span>
         </div>
         <div className="flex h-3 w-full overflow-hidden rounded border border-card-border">
           <div
             className="bg-accent"
-            style={{ width: `${pfcRatio.p}%` }}
-            title={`P ${pfcRatio.p.toFixed(0)}%`}
+            style={{ width: `${pfcRatio.protein}%` }}
+            title={`タンパク質 ${pfcRatio.protein.toFixed(0)}%`}
           />
           <div
             className="bg-warning"
-            style={{ width: `${pfcRatio.f}%` }}
-            title={`F ${pfcRatio.f.toFixed(0)}%`}
+            style={{ width: `${pfcRatio.fat}%` }}
+            title={`脂質 ${pfcRatio.fat.toFixed(0)}%`}
           />
           <div
             className="bg-success"
-            style={{ width: `${pfcRatio.c}%` }}
-            title={`C ${pfcRatio.c.toFixed(0)}%`}
+            style={{ width: `${pfcRatio.carbs}%` }}
+            title={`炭水化物 ${pfcRatio.carbs.toFixed(0)}%`}
           />
         </div>
-        {/* 目標値マーカー */}
-        <div className="relative h-1 mt-0.5">
-          <span
-            className="absolute -translate-x-1/2 text-[8px] text-muted"
-            style={{ left: `${targetPfc.protein}%` }}
-            aria-hidden
-          >
-            ▲
+        <div className="relative mt-1 h-4">
+          <span className="absolute left-0 top-0 text-[10px] text-muted">
+            目標
           </span>
           <span
-            className="absolute -translate-x-1/2 text-[8px] text-muted"
-            style={{ left: `${targetPfc.protein + targetPfc.fat}%` }}
-            aria-hidden
+            className="absolute top-0 -translate-x-1/2 text-[10px] font-bold text-muted"
+            style={{ left: `${targetPfc.protein}%` }}
+            title="目標: タンパク質と脂質の境目"
           >
-            ▲
+            ↑
+          </span>
+          <span
+            className="absolute top-0 -translate-x-1/2 text-[10px] font-bold text-muted"
+            style={{ left: `${targetPfc.protein + targetPfc.fat}%` }}
+            title="目標: 脂質と炭水化物の境目"
+          >
+            ↑
           </span>
         </div>
-        <div className="flex justify-between text-[10px] font-mono mt-1 text-muted">
-          <span>
-            <span className="text-accent">P</span> {Math.round(total.protein)}g (
-            {pfcRatio.p.toFixed(0)}%)
-          </span>
-          <span>
-            <span className="text-warning">F</span> {Math.round(total.fat)}g (
-            {pfcRatio.f.toFixed(0)}%)
-          </span>
-          <span>
-            <span className="text-success">C</span> {Math.round(total.carbs)}g (
-            {pfcRatio.c.toFixed(0)}%)
-          </span>
+        <div className="mt-1 grid gap-1 text-[10px] text-muted sm:grid-cols-3">
+          {PFC_LABELS.map((item) => {
+            const grams = Math.round(total[item.key])
+            const ratio = pfcRatio[item.key].toFixed(0)
+            return (
+              <span key={item.key} className="min-w-0">
+                <span className={item.colorClass}>{item.label}</span>{' '}
+                <span className="font-mono">
+                  {grams}g ({ratio}%)
+                </span>
+              </span>
+            )
+          })}
         </div>
       </div>
 
       <div>
         <div className="text-xs text-muted mb-1">日別カロリー</div>
-        <div className="flex items-end gap-1 h-20">
+        <div className="flex h-20 min-w-0 items-end gap-1">
           {perDay.map((d, i) => {
             const h = (d.calories / Math.max(maxKcal, targetKcal)) * 100
             const reachesTarget = d.calories >= targetKcal
             return (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                <div className="w-full h-16 flex items-end">
+              <div key={i} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+                <div className="flex h-16 w-full items-end">
                   <div
                     className={`w-full rounded-t ${
                       reachesTarget ? 'bg-success' : 'bg-accent/60'

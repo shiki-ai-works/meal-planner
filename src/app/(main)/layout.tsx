@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 
 const navItems = [
   { href: '/dashboard', label: '献立', icon: '📅' },
+  { href: '/recipes', label: 'レシピ', icon: '🍱' },
   { href: '/shopping', label: '買い物', icon: '🛒' },
   { href: '/inventory', label: '在庫', icon: '🗄️' },
   { href: '/settings', label: '設定', icon: '⚙️' },
@@ -30,7 +31,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
             <Link
               key={item.href}
               href={item.href}
-              className="flex flex-col items-center gap-1 py-3 px-4 text-[var(--muted)] hover:text-[var(--accent)] transition-colors"
+              className="flex min-w-0 flex-1 flex-col items-center gap-1 px-2 py-3 text-[var(--muted)] transition-colors hover:text-[var(--accent)]"
             >
               <span className="text-xl">{item.icon}</span>
               <span className="text-xs font-medium">{item.label}</span>

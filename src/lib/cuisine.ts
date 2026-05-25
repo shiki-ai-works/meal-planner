@@ -16,8 +16,23 @@ const CUISINE_BORDER: Record<CuisineCategory, string> = {
   other: '#c5d0f0',
 }
 
+const CUISINE_BACKGROUND: Record<CuisineCategory, string> = {
+  japanese:
+    'radial-gradient(circle at 20% 12%, rgba(255,247,237,0.95) 0 20%, transparent 38%), linear-gradient(135deg, #fff7ed 0%, #fed7aa 54%, #ffffff 100%)',
+  chinese:
+    'radial-gradient(circle at 80% 14%, rgba(255,228,230,0.95) 0 18%, transparent 36%), linear-gradient(135deg, #fff1f2 0%, #fb7185 58%, #fff7ed 100%)',
+  western:
+    'radial-gradient(circle at 18% 18%, rgba(224,242,254,0.96) 0 22%, transparent 40%), linear-gradient(135deg, #eff6ff 0%, #7dd3fc 56%, #ffffff 100%)',
+  other:
+    'radial-gradient(circle at 80% 16%, rgba(240,244,255,0.95) 0 22%, transparent 40%), linear-gradient(135deg, #f8fafc 0%, #c5d0f0 58%, #ffffff 100%)',
+}
+
 export function cuisineBorderColor(genre: CuisineGenre | null): string {
   return CUISINE_BORDER[categorizeCuisine(genre)]
+}
+
+export function cuisineBackground(genre: CuisineGenre | null): string {
+  return CUISINE_BACKGROUND[categorizeCuisine(genre)]
 }
 
 const CUISINE_EMOJI: Record<CuisineCategory, string> = {
