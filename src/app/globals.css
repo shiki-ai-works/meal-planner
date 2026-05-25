@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  /* Blue Archive風パステル + HUD的アクセント（ライトモード） */
+  /* パステル + HUD的アクセント（ライトモード） */
   --background: #f0f4ff;
   --foreground: #1a1f2e;
   --card: #ffffff;

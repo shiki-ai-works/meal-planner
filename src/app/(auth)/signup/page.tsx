@@ -10,6 +10,7 @@ export default function SignupPage() {
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -19,6 +20,10 @@ export default function SignupPage() {
 
     if (password.length < 8) {
       setError('パスワードは8文字以上で設定してください')
+      return
+    }
+    if (!acceptedTerms) {
+      setError('利用規約とプライバシーポリシーを確認してください')
       return
     }
 
@@ -103,9 +108,30 @@ export default function SignupPage() {
           </p>
         )}
 
+        <div className="rounded-md border border-[var(--card-border)] bg-[var(--background)] px-3 py-2">
+          <label className="flex cursor-pointer items-start gap-2 text-xs text-[var(--muted)]">
+            <input
+              type="checkbox"
+              checked={acceptedTerms}
+              onChange={(e) => setAcceptedTerms(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)]"
+            />
+            <span>
+              <Link href="/legal/terms" className="font-bold text-[var(--accent)] hover:underline">
+                利用規約
+              </Link>
+              と
+              <Link href="/legal/privacy" className="font-bold text-[var(--accent)] hover:underline">
+                プライバシーポリシー
+              </Link>
+              を確認しました。
+            </span>
+          </label>
+        </div>
+
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !acceptedTerms}
           className="w-full py-2.5 px-4 rounded-md bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? '登録中...' : 'アカウントを作成'}

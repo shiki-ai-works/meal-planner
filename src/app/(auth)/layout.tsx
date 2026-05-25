@@ -1,3 +1,6 @@
+import Link from 'next/link'
+import { legalLinks } from '@/lib/legal'
+
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--background)] px-4">
@@ -18,6 +21,13 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           </p>
         </div>
         {children}
+        <nav className="mt-5 flex flex-wrap justify-center gap-3 text-xs text-[var(--muted)]">
+          {legalLinks.map((link) => (
+            <Link key={link.href} href={link.href} className="hover:text-[var(--accent)]">
+              {link.label}
+            </Link>
+          ))}
+        </nav>
       </div>
     </div>
   )

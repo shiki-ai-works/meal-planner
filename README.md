@@ -1,6 +1,6 @@
 # 完全栄養ランダム献立達人
 
-Blue Archive 風パステル + HUD アクセントの週間献立アプリです。献立生成、レシピ図鑑、在庫、買い物リスト、毎週固定の管理をひとつの画面群にまとめます。
+パステル + HUD アクセントの週間献立アプリです。献立生成、レシピ図鑑、在庫、買い物リスト、毎週固定の管理をひとつの画面群にまとめます。HUD は、必要な情報を画面上に重ねて見せるゲーム風の情報表示のことです。
 
 ## 起動
 
@@ -101,6 +101,7 @@ Supabase SQL Editor で `supabase/migrations` を番号順に適用します。
 004_user_targets.sql
 005_detailed_recipes.sql
 006_detailed_existing_recipes.sql
+007_recipe_images.sql
 ```
 
 `003` は過去に別途適用済みとして扱われています。新しい環境で必要になった場合は、`meal_plans` の `user_id, week_start_date` unique 制約を確認してください。
@@ -126,6 +127,28 @@ npm run lint
 npm run build
 git diff --check
 ```
+
+公開前のユーザー導線を確認する場合は、次も使えます。E2E は end-to-end の略で、画面に近い入口から出口までをまとめて確認する検査です。
+
+```powershell
+npm run e2e:public
+```
+
+既に起動済みのサーバーを相手にする場合は、`E2E_BASE_URL` に URL を入れてから `node scripts/e2e-public-flow.mjs` を実行します。
+
+## 公開前の注意
+
+本番への詳しい手順は `DEPLOYMENT.md` を参照してください。
+
+公開時は `NEXT_PUBLIC_SUPABASE_URL` と `NEXT_PUBLIC_SUPABASE_ANON_KEY` を hosting 側の環境変数にも設定してください。secret key や service_role key は公開環境変数に入れません。
+
+利用者に見せる案内は次のページにあります。
+
+- `/legal/terms`: 利用規約と栄養・アレルギー注意書き
+- `/legal/privacy`: プライバシーポリシー
+- `/legal/attributions`: 画像クレジット
+
+画像クレジットの内容は、Wikimedia Commons などの出典ページを優先します。作者・ライセンスが変わって見える場合は、出典ページ側を確認してください。
 
 ## 画像 URL SQL
 

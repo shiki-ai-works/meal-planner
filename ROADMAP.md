@@ -3,13 +3,13 @@
 > プロジェクト全体の中長期計画。**「次に何をやるか」と「将来どこに向かうか」**を 1 ファイルで把握。
 > セッションごとの細かい進捗は `progress/PROGRESS_NN.md`、メモリ運用は Claude 側の `project_meal_planner.md` を参照。
 
-**最終更新:** 2026-05-25 (PROGRESS_89 時点。仮タイトル確定・画像 URL 適用・UI 改善まで反映)
+**最終更新:** 2026-05-25 (PROGRESS_90 時点。公開準備と E2E 導線まで反映)
 
 ---
 
 ## ビジョン
 
-Blue Archive 風パステル + HUD アクセントの UI で、**「考えなくていい週間献立アプリ」**を作る。
+パステル + HUD アクセントの UI で、**「考えなくていい週間献立アプリ」**を作る。
 
 - 利用シーン: 「今夜何作ろう」「冷蔵庫に何残ってる」「カロリー大丈夫？」「買い物リスト欲しい」を 1 アプリで完結
 - ターゲット: 自炊負担を軽くしたい家庭・個人
@@ -43,7 +43,7 @@ Phase 4 (将来構想)     💭 アイデア
 - ✅ DB スキーマ + RLS
 - ✅ レシピシード 25 件 (`002_seed_recipes.sql`)
 - ✅ ボトムナビ付きレイアウト
-- ✅ Tailwind + Blue Archive 風デザイントークン (`globals.css` の `--accent` 系)
+- ✅ Tailwind + パステル HUD 風デザイントークン (`globals.css` の `--accent` 系)
 
 ## Phase 2: 主要機能 🚧
 
@@ -377,6 +377,11 @@ Phase 4 (将来構想)     💭 アイデア
   - ダッシュボードのカロリーバランス、献立固定 / 解除、料理詳細からの献立差し替え、円グラフ、材料分量表示を改善済み
   - 表示名を仮決まりで「完全栄養ランダム献立達人」に変更し、`app-title-shadow` で床落ち影の仮タイトル表現を追加
   - `NEXT_CHAT_HANDOFF.md` と Obsidian handoff note の保存・push 済み状態を確認済み
+- ✅ 公開準備と E2E 導線（PROGRESS_90）
+  - `/legal` 以下に利用規約、プライバシー、画像クレジットを追加
+  - signup に利用規約とプライバシーポリシーの確認 checkbox を追加
+  - `npm run e2e:public` で公開前の主要導線を確認可能にした
+  - `DEPLOYMENT.md` に本番 Supabase、Vercel、公開後確認の手順を追加
 
 ### 進行中 🚧
 - 🚧 **タイトル仮デザイン**
@@ -480,6 +485,7 @@ Phase 4 (将来構想)     💭 アイデア
 - **JSONB カラム** (ingredients/steps/nutrition) と `DbRecipe` 型の整合性を要確認
 - **Supabase RLS** で全テーブルガード。サービスロールキーは `.env.local` のみ
 - **クライアントに送るデータ量**は意識する（`recipeMap` slim 化等）
+- **公開前導線**: `npm run check` と `npm run e2e:public` を両方通す
 
 ---
 
@@ -505,6 +511,7 @@ npm run dev
 
 ## 関連ドキュメント
 
+- [`progress/PROGRESS_90.md`](progress/PROGRESS_90.md) — 公開準備と E2E 導線
 - [`progress/PROGRESS_89.md`](progress/PROGRESS_89.md) — 仮タイトル確定と現在地の整理
 - [`progress/PROGRESS_88.md`](progress/PROGRESS_88.md) — 画像 URL source notes 検査
 - [`progress/PROGRESS_87.md`](progress/PROGRESS_87.md) — 画像 URL workflow schema 照合検査

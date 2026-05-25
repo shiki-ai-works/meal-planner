@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { connection } from 'next/server'
+import { legalLinks } from '@/lib/legal'
 import { getSupabaseSetupStatus } from '@/lib/supabase/env'
 
 const SUPABASE_DASHBOARD_URL = 'https://supabase.com/dashboard/projects'
@@ -205,6 +206,24 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key`}
             <pre className="mt-3 overflow-x-auto rounded border border-card-border bg-white p-3 text-xs">
               {`npm run setup:doctor:help`}
             </pre>
+          </div>
+        </section>
+
+        <section className="hud-border bg-card p-5">
+          <h2 className="text-sm font-bold">公開前に確認する案内</h2>
+          <p className="mt-2 text-xs text-muted">
+            利用規約、プライバシー、画像クレジットは、ログイン前でも確認できます。
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {legalLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="inline-flex min-h-9 items-center rounded border border-card-border bg-white px-3 text-xs font-bold text-muted hover:border-accent hover:text-accent"
+              >
+                {link.label}
+              </Link>
+            ))}
           </div>
         </section>
       </div>

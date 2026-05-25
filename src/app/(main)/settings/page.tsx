@@ -67,6 +67,21 @@ export default async function SettingsPage() {
           </span>
         </Link>
       </div>
+
+      <div className="mt-6">
+        <Link
+          href="/legal"
+          className="hud-border bg-card p-3 flex items-center justify-between hover:border-accent"
+        >
+          <div className="flex flex-col">
+            <span className="text-sm font-bold">公開情報と注意書き</span>
+            <span className="text-[10px] text-muted">
+              利用規約、プライバシー、画像クレジット
+            </span>
+          </div>
+          <span className="text-xs text-muted">確認 →</span>
+        </Link>
+      </div>
     </div>
   )
 }

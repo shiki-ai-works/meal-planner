@@ -446,6 +446,12 @@ export function DemoClient() {
               >
                 セットアップ
               </Link>
+              <Link
+                href="/legal"
+                className="rounded border border-card-border bg-white px-3 py-2 text-xs font-bold text-muted hover:border-accent hover:text-accent"
+              >
+                公開情報
+              </Link>
               <button
                 type="button"
                 onClick={() => regenerate()}

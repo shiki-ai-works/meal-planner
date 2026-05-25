@@ -11,7 +11,8 @@ export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl
   const isApiPath = pathname.startsWith('/api')
   const isSetupStatusApi = pathname === '/api/setup-status'
-  const isPublicPage = pathname === '/setup' || pathname.startsWith('/demo')
+  const isPublicPage =
+    pathname === '/setup' || pathname.startsWith('/demo') || pathname.startsWith('/legal')
   const isPublicRequest = isPublicPage || isSetupStatusApi
   const supabaseSetupStatus = getSupabaseSetupStatus()
 

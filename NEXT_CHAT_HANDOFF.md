@@ -141,3 +141,11 @@ npm.cmd run check
 3. 調理工程写真を入れる場合は、まず利用可能な実画像を探し、出典・作者・ライセンスを控える。
 4. 使える工程写真がない場合は、生成画像で統一感を出す。
 5. 本体コミットを作る場合は、画像 workflow、UI改善、タイトル仮デザインを分けて整理する。
+
+## 公開準備メモ
+
+- `/legal`、`/legal/terms`、`/legal/privacy`、`/legal/attributions` を追加済み。
+- signup に利用規約とプライバシーポリシー確認 checkbox を追加済み。
+- `npm run e2e:public` で公開前の主要導線を確認可能。
+- `DEPLOYMENT.md` に本番 Supabase、Vercel、公開後確認の手順を追加済み。
+- 2026-05-25 時点では `SUPABASE_ACCESS_TOKEN` と Vercel credential が無く、本番 project 作成と deploy 実行は停止。

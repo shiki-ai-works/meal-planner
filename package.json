@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "check": "npm run setup:doctor:test && npm run recipe-images:workflow:test && npm run recipe-images:workflow && npm run typecheck && npm run lint && npm run build",
+    "e2e:public": "npm run build && node scripts/e2e-public-flow.mjs",
     "setup:doctor": "node scripts/check-supabase-env.mjs",
     "setup:doctor:strict": "node scripts/check-supabase-env.mjs --strict",
     "setup:doctor:json": "node scripts/check-supabase-env.mjs --json",
