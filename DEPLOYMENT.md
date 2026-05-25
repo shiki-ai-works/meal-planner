@@ -1,17 +1,28 @@
 # 公開デプロイ手順
 
-最終更新: 2026-05-25
+最終更新: 2026-05-26
 
 このアプリは Next.js の通常サーバー機能、Supabase Auth、Supabase Database を使います。静的 hosting ではなく、Next.js に対応した hosting を使います。hosting は、アプリをインターネット上で動かす置き場のことです。
 
 ## 事前確認
 
 ```powershell
-npm run check
-npm run e2e:public
+npm run release:check
 ```
 
-`e2e:public` は公開前の主要導線を確認します。E2E は end-to-end の略で、入口から出口までをまとめて見る検査です。
+`release:check` は通常検査、strict 画像出典メモ検査、公開前の主要導線 E2E をまとめて実行します。E2E は end-to-end の略で、入口から出口までをまとめて見る検査です。通常検査には、README と `PORTFOLIO.md` のスクリーンショット参照が壊れていないかを見る `portfolio:check`、Markdown 文書のローカルリンク切れを見る `docs:links`、日本語文書の文字化け断片を見る `docs:mojibake`、最新進捗が ROADMAP に載っているかを見る `docs:progress-index` も含まれます。`portfolio:check` は参照先が存在し、拡張子どおりの JPEG / PNG として読めるかを確認します。`docs:links` は README / PORTFOLIO / ROADMAP / NEXT_CHAT_HANDOFF / DEPLOYMENT のファイル参照が実在するかを確認します。`docs:mojibake` は UTF-8 の読み違えで生まれやすい断片が Markdown に混ざっていないか確認します。`docs:progress-index` は最新の `progress/PROGRESS_NN.md` が ROADMAP の最終更新と関連ドキュメントに反映されているか確認します。公開前 E2E には `/demo?section=shopping` と `/demo?recipe=demo-natto-rice` も含まれるので、README で案内しているデモの深いリンクも確認できます。strict は警告も失敗として扱う確認で、作者名やライセンスが placeholder のまま戻った時に公開前で止めるための網です。`check` の build 結果を E2E で再利用するため、同じ build を二度走らせません。画像出典メモ検査には、ローカル作業用の `supabase/recipe-images.sources.json` が必要です。build 済み E2E の `e2e:public:run` は、ローカル検査時に `.next/BUILD_ID` が無ければ先に build するよう案内します。この guard は `npm run e2e:public:test` でも自己検査されます。
+
+画像出典の warning 対象を source page URL つきで見直す場合は、次を使います。source page URL は出典ページの住所で、作者名やライセンスを確認する入口です。
+
+```powershell
+npm run recipe-images:sources-report
+```
+
+画像出典の再確認メモだけを単独で強めに確認する場合は、次を使います。
+
+```powershell
+npm run recipe-images:sources-check:strict
+```
 
 ## 本番 Supabase
 
@@ -103,7 +114,7 @@ CLI ではなく GitHub 連携で deploy する場合は、Vercel Dashboard で 
 
 ```powershell
 $env:E2E_BASE_URL='https://<your-production-domain>'
-node scripts/e2e-public-flow.mjs
+npm run e2e:public:run
 ```
 
 次のページをブラウザでも確認します。

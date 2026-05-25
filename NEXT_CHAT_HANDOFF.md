@@ -26,6 +26,13 @@
 - Supabase SQL Editor で migration を適用済み。
 - 検証 SQL で 35 件すべて一致、60 recipe row に expected URL が入ったことを確認済み。
 - `recipe-images:sources-check` は出典メモの placeholder attribution warning に対象 recipe 名を出す。
+- `recipe-images:sources-report` は warning 対象の source page URL / image URL / author / license を一覧する。
+- `recipe-images:sources-report:json` は同じ情報を JSON で出す。
+- `recipe-images:sources-report:markdown` は同じ情報を Markdown のチェックリストで出す。
+- `recipe-images:workflow` の次アクションにも `recipe-images:sources-report` が出る。
+- `recipe-images:workflow` は source note warnings と placeholder attribution warnings の件数も表示する。
+- PROGRESS_102 で placeholder attribution 9 件の author / license を確定し、`sources-check:strict` も pass する状態にした。
+- PROGRESS_102 で `/demo` の静的 fallback を追加し、JavaScript 読み込み前の本番 HTML でも公開 E2E の主要文言が見えるようにした。
 
 ### UI改善
 
@@ -62,20 +69,54 @@
 ```powershell
 npm.cmd run check
 npm.cmd run recipe-images:sources-check
+npm.cmd run recipe-images:sources-report
+npm.cmd run --silent recipe-images:sources-report:json
+npm.cmd run recipe-images:sources-report:markdown
+npm.cmd run recipe-images:sources-check:strict
+npm.cmd run release:check
 ```
 
 `npm.cmd run check` の中身:
 
 - `setup:doctor:test`
 - `recipe-images:workflow:test`
+- `e2e:public:test`
+- `portfolio:check:test`
+- `portfolio:check`
+- `docs:links:test`
+- `docs:links`
+- `docs:mojibake:test`
+- `docs:mojibake`
+- `docs:progress-index:test`
+- `docs:progress-index`
 - `recipe-images:workflow`
 - `typecheck`
 - `lint`
 - `build`
 
-`recipe-images:sources-check` は pass する。author / license の再確認 warning が残る場合は、warning 行に対象 recipe 名が出る。
+`recipe-images:sources-check` は pass する。author / license の再確認 warning が残る場合は、warning 行に対象 recipe 名が出る。現在は placeholder attribution warning 0 件。
 
-PROGRESS_91 では dev server を検証セッション側で起動し、`http://localhost:3000/setup` が HTTP 200 を返すことを確認済み。Browser API の navigation は timeout したため、画面確認は既存の確認結果と HTTP 応答確認に留めている。
+`recipe-images:sources-report` は source page URL つきで再確認対象を一覧する。現在は placeholder attribution warning 0 件。`recipe-images:workflow` からも次アクションとして到達でき、workflow summary にも `placeholder attribution warnings: 0` と表示される。
+
+`recipe-images:sources-report:json` は `placeholderAttributionSources` に recipe / sourcePageUrl / imageUrl / author / license を入れる。現在は placeholder がないため空配列になる。
+
+`recipe-images:sources-report:markdown` は同じ情報を `- [ ]` のチェックリストとして出す。現在は placeholder がないため完了済み表示になる。
+
+`recipe-images:sources-check:strict` は、その warning も error として扱う最終確認用。現在は pass する。
+
+公開前のまとめ検査として `npm.cmd run release:check` も追加済み。通常検査、strict 画像出典メモ検査、公開導線 E2E を順番に実行する。通常検査には `portfolio:check:test` / `portfolio:check`、`docs:links:test` / `docs:links`、`docs:mojibake:test` / `docs:mojibake`、`docs:progress-index:test` / `docs:progress-index` が含まれ、README と `PORTFOLIO.md` のスクリーンショット参照、主要 Markdown のローカルファイルリンク、日本語文書の文字化け断片、最新 progress note と ROADMAP の同期を確認する。strict は warning も失敗扱いにする確認で、placeholder attribution が戻った時に公開前で止める。`check` の build 結果を再利用し、E2E 前の重複 build は避ける。`e2e:public:run` はローカル検査時に `.next/BUILD_ID` を確認し、build が無ければ案内して止まる。`e2e:public:test` はこの guard と `E2E_BASE_URL` 分岐を自己検査する。`supabase/recipe-images.sources.json` がある作業環境向け。
+
+PROGRESS_106 で `portfolio:check:test` を追加し、missing image と拡張子 / 中身 mismatch で失敗することも自己検査するようにした。
+
+PROGRESS_107 で `docs:links` / `docs:links:test` を追加し、README / PORTFOLIO / ROADMAP / NEXT_CHAT_HANDOFF / DEPLOYMENT のローカルファイル参照切れを通常検査で拾えるようにした。
+
+PROGRESS_108 で `docs:mojibake` / `docs:mojibake:test` を追加し、主要 Markdown と progress notes の文字化け断片を通常検査で拾えるようにした。
+
+PROGRESS_109 で `docs:progress-index` / `docs:progress-index:test` を追加し、最新 `progress/PROGRESS_NN.md` が ROADMAP の最終更新と関連ドキュメントに反映されているかを通常検査で拾えるようにした。
+
+PROGRESS_104 で公開導線 E2E に `/demo?section=shopping` と `/demo?recipe=demo-natto-rice` を追加した。README で案内しているデモの深いリンクも、公開前検査で 200 と主要文言を確認する。
+
+PROGRESS_102 では `release:check` が pass し、dev server 上の `http://localhost:3000/setup` も Browser で表示確認済み。title は `完全栄養ランダム献立達人`、`Supabase` と `画像クレジット` の文言も取得できた。
 
 ブラウザ確認済み:
 
@@ -143,16 +184,19 @@ PROGRESS_91 では dev server を検証セッション側で起動し、`http://
 ## 次にやるなら
 
 1. タイトルを画像素材に置き換える時は、`app-title-shadow` を削るか、画像用の別スタイルへ移行する。
-2. `recipe-images:sources-check` の warning 対象 recipe について、source page の author / license を確認する。
-3. 料理詳細の「つかんで入れる」「つかんで外す」の言葉を、必要ならさらに柔らかくする。
-4. 調理工程写真を入れる場合は、まず利用可能な実画像を探し、出典・作者・ライセンスを控える。
-5. 使える工程写真がない場合は、生成画像で統一感を出す。
-6. 本体コミットを作る場合は、画像 workflow、UI改善、タイトル仮デザインを分けて整理する。
+2. 公開前は `npm.cmd run release:check` を通す。
+3. 画像出典を追加・変更した場合は、`recipe-images:sources-check:strict` まで通す。
+4. 料理詳細の「つかんで入れる」「つかんで外す」の言葉を、必要ならさらに柔らかくする。
+5. 調理工程写真を入れる場合は、まず利用可能な実画像を探し、出典・作者・ライセンスを控える。
+6. 使える工程写真がない場合は、生成画像で統一感を出す。
+7. 本体コミットを作る場合は、画像 workflow、UI改善、タイトル仮デザインを分けて整理する。
 
 ## 公開準備メモ
 
 - `/legal`、`/legal/terms`、`/legal/privacy`、`/legal/attributions` を追加済み。
 - signup に利用規約とプライバシーポリシー確認 checkbox を追加済み。
-- `npm run e2e:public` で公開前の主要導線を確認可能。
+- `npm run e2e:public` で build 付きの公開前主要導線を確認可能。
+- `npm run e2e:public:run` で build 済み状態の公開前主要導線だけを確認可能。
+- `npm run e2e:public:test` で E2E script の build guard を軽く自己検査可能。
 - `DEPLOYMENT.md` に本番 Supabase、Vercel、公開後確認の手順を追加済み。
 - 2026-05-25 時点では `SUPABASE_ACCESS_TOKEN` と Vercel credential が無く、本番 project 作成と deploy 実行は停止。

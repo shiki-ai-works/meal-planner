@@ -1,8 +1,10 @@
 import { spawn, spawnSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
 
 const port = process.env.E2E_PORT ?? '3210'
 const externalBaseUrl = process.env.E2E_BASE_URL?.replace(/\/$/, '')
 const baseUrl = externalBaseUrl ?? `http://127.0.0.1:${port}`
+const buildIdPath = '.next/BUILD_ID'
 
 let serverProcess = null
 
@@ -54,6 +56,18 @@ function assertIncludes(text, needle, path) {
   }
 }
 
+function assertLocalBuildExists() {
+  if (existsSync(buildIdPath)) return
+
+  throw new Error(
+    [
+      `Missing production build: ${buildIdPath}`,
+      'Run npm.cmd run build before npm.cmd run e2e:public:run.',
+      'Alternatively, run npm.cmd run e2e:public or npm.cmd run release:check.',
+    ].join('\n'),
+  )
+}
+
 async function checkPage(path, expectedTexts) {
   const text = await fetchText(path)
   for (const expected of expectedTexts) {
@@ -64,6 +78,8 @@ async function checkPage(path, expectedTexts) {
 
 async function main() {
   if (!externalBaseUrl) {
+    assertLocalBuildExists()
+
     if (process.platform === 'win32') {
       serverProcess = spawn(
         'cmd.exe',
@@ -100,10 +116,12 @@ async function main() {
   const checks = [
     ['/setup', ['Supabase', '公開前に確認する案内', '画像クレジット']],
     ['/demo', ['DEMO PREVIEW', '公開情報', '完全栄養ランダム献立達人']],
+    ['/demo?section=shopping', ['DEMO PREVIEW', '公開情報', '完全栄養ランダム献立達人']],
+    ['/demo?recipe=demo-natto-rice', ['DEMO PREVIEW', '公開情報', '完全栄養ランダム献立達人']],
     ['/legal', ['公開前に確認しておくこと', '利用規約', 'プライバシー']],
     ['/legal/terms', ['利用規約と注意書き', 'アレルギー', '画像と第三者コンテンツ']],
     ['/legal/privacy', ['プライバシーポリシー', 'Supabase', '削除と問い合わせ']],
-    ['/legal/attributions', ['画像クレジット', 'Wikimedia Commons', '納豆ご飯']],
+    ['/legal/attributions', ['画像クレジット', 'commons.wikimedia.org', '納豆ご飯']],
   ]
 
   if (setupStatus.ok) {
@@ -131,6 +149,6 @@ main()
       } else {
         serverProcess.kill()
       }
+      process.exit(process.exitCode ?? 0)
     }
-    process.exit(process.exitCode ?? 0)
   })

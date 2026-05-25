@@ -3,7 +3,7 @@
 > プロジェクト全体の中長期計画。**「次に何をやるか」と「将来どこに向かうか」**を 1 ファイルで把握。
 > セッションごとの細かい進捗は `progress/PROGRESS_NN.md`、メモリ運用は Claude 側の `project_meal_planner.md` を参照。
 
-**最終更新:** 2026-05-25 (PROGRESS_91 時点。source notes warning 対象表示まで反映)
+**最終更新:** 2026-05-26 (PROGRESS_109 時点。progress index check 追加まで反映)
 
 ---
 
@@ -386,6 +386,82 @@ Phase 4 (将来構想)     💭 アイデア
   - `recipe-images:sources-check` の placeholder attribution warning に対象 recipe 名を表示
   - warning が exit code 0 のまま、修正対象を直接追えるようにした
   - 自己検査で placeholder warning に recipe 名が含まれることを確認
+- ✅ 公開前 release check 追加（PROGRESS_92）
+  - `npm run release:check` を追加し、`check` / `recipe-images:sources-check` / `e2e:public` を順番に実行可能にした
+  - README と DEPLOYMENT に、公開候補確認の入口として `release:check` を明記した
+  - 出典メモ検査がローカル作業用 `supabase/recipe-images.sources.json` を必要とすることを明記した
+- ✅ release check build 再利用（PROGRESS_93）
+  - `e2e:public:run` を追加し、build 済み状態で公開導線 E2E だけを実行可能にした
+  - `release:check` は `check` の build 結果を再利用し、E2E 前の重複 build を避けるようにした
+  - README / DEPLOYMENT / handoff に `e2e:public:run` と build 再利用方針を追記した
+- ✅ E2E build guard（PROGRESS_94）
+  - `e2e:public:run` がローカル `next start` を使う前に `.next/BUILD_ID` を確認するようにした
+  - build が無い場合は `build` / `e2e:public` / `release:check` のどれを使うべきか案内する
+  - 外部 URL 検査時は `E2E_BASE_URL` を優先し、ローカル build guard を要求しない
+- ✅ E2E build guard 自己検査（PROGRESS_95）
+  - `scripts/e2e-public-flow.test.mjs` と `npm run e2e:public:test` を追加
+  - build 不足時の案内と、`E2E_BASE_URL` 指定時にローカル build を要求しない分岐を自己検査する
+  - `npm run check` に E2E script 自体の軽量自己検査を組み込んだ
+- ✅ source notes strict 検査（PROGRESS_96）
+  - `recipe-images:sources-check:strict` を追加し、出典メモの warning を error として扱えるようにした
+  - 通常の `sources-check` は warning を表示して通し、strict は最終公開前の追加確認として使う
+  - workflow 自己検査で placeholder attribution warning が strict では失敗することを確認
+- ✅ source notes report 追加（PROGRESS_97）
+  - `recipe-images:sources-report` を追加し、出典メモの warning 対象を source page URL つきで一覧できるようにした
+  - placeholder attribution の recipe / source / image / author / license を表示し、修正対象を追いやすくした
+  - workflow 自己検査で report 出力と完了時の strict 案内を確認
+- ✅ workflow source report action（PROGRESS_98）
+  - `recipe-images:workflow` の次アクションに `recipe-images:sources-report` を追加
+  - source notes がある状態では、通常検査と warning 修正用 report の両方へ進めるようにした
+  - workflow 自己検査で report action の command と対象 path を確認
+- ✅ workflow source notes summary（PROGRESS_99）
+  - `recipe-images:workflow` に source note warnings / errors / placeholder attribution warnings の件数を表示
+  - workflow JSON の `summary.sourceNotes` に出典メモの診断数を追加
+  - `sources-report` action に warning target 数を持たせ、表示上も残件数を見えるようにした
+- ✅ source notes report JSON（PROGRESS_100）
+  - `recipe-images:sources-report:json` を追加し、出典 warning 対象を機械可読 JSON で出力可能にした
+  - `placeholderAttributionSources` に recipe / sourcePageUrl / imageUrl / author / license を含めた
+  - 自己検査で warning あり / warning なし / error ありの JSON 出力を確認
+- ✅ source notes report Markdown（PROGRESS_101）
+  - `recipe-images:sources-report:markdown` を追加し、出典 warning 対象を Markdown チェックリストで出力可能にした
+  - source page / image / current author / current license を `- [ ]` の確認項目として一覧
+  - 自己検査で warning あり / warning なし / error ありの Markdown 出力を確認
+- ✅ source notes attribution 確定（PROGRESS_102）
+  - Wikimedia Commons メタデータを確認し、placeholder attribution 9 件の author / license を確定
+  - `src/lib/legal.ts` と `supabase/recipe-images.sources.json` の `See Wikimedia Commons file page` を解消
+  - `recipe-images:sources-check:strict` が pass し、workflow の placeholder attribution warnings が 0 になった
+  - `src/app/demo/DemoClient.tsx` の URL 初期値同期を整理し、React lint を通した
+  - `/demo` に静的 fallback を追加し、JavaScript 読み込み前でも公開 E2E が見る主要文言を出すようにした
+  - `npm.cmd run release:check` が pass する状態まで確認
+- ✅ release check strict 化（PROGRESS_103）
+  - `release:check` が `recipe-images:sources-check:strict` を実行するように変更
+  - placeholder attribution や出典 warning が戻った場合、公開前検査で止まる
+  - README / DEPLOYMENT / handoff の説明を strict 前提に更新
+- ✅ demo deep link E2E 追加（PROGRESS_104）
+  - 公開導線 E2E に `/demo?section=shopping` と `/demo?recipe=demo-natto-rice` を追加
+  - fixture server が query string つき URL も同じ route として扱うようにした
+  - Browser で買い物タブ直リンクと納豆ご飯 modal 直リンクを確認
+- ✅ portfolio asset check 追加（PROGRESS_105）
+  - `portfolio:check` を追加し、README / PORTFOLIO の screenshot 参照が存在する JPEG / PNG を指しているか確認
+  - 実体が JPEG だった portfolio screenshot を `.jpg` 拡張子へ整理
+  - `npm run check` に組み込み、スクリーンショット参照切れも通常検査で拾えるようにした
+  - README / DEPLOYMENT / handoff の検査説明を更新
+- ✅ portfolio asset check 自己検査（PROGRESS_106）
+  - `portfolio:check:test` を追加し、valid / missing image / extension mismatch を自己検査
+  - `portfolio:check` が拡張子と実体 signature の一致まで確認するように強化
+  - `npm run check` に自己検査も組み込み、検査自体の退化を拾えるようにした
+- ✅ Markdown local link check 追加（PROGRESS_107）
+  - `docs:links` を追加し、README / PORTFOLIO / ROADMAP / NEXT_CHAT_HANDOFF / DEPLOYMENT のローカルファイル参照切れを確認
+  - `docs:links:test` で valid / missing local target / external・route skip を自己検査
+  - `npm run check` に組み込み、文書リンク切れも通常検査で拾えるようにした
+- ✅ Markdown mojibake check 追加（PROGRESS_108）
+  - `docs:mojibake` を追加し、主要 Markdown と progress notes の文字化け断片を確認
+  - `docs:mojibake:test` で clean / mojibake / missing document を自己検査
+  - `npm run check` に組み込み、日本語文書の意味崩れも通常検査で拾えるようにした
+- ✅ progress index check 追加（PROGRESS_109）
+  - `docs:progress-index` を追加し、最新 `progress/PROGRESS_NN.md` が ROADMAP の最終更新と関連ドキュメントに反映されているか確認
+  - `docs:progress-index:test` で latest note / missing roadmap link / heading mismatch を自己検査
+  - `npm run check` に組み込み、進捗メモだけ増えて地図が古くなる事故を拾えるようにした
 
 ### 進行中 🚧
 - 🚧 **タイトル仮デザイン**
@@ -466,7 +542,7 @@ Phase 4 (将来構想)     💭 アイデア
 ## いま向かっている方向（"Now / Next / Later"）
 
 ### Now（このイテレーション）
-- `recipe-images:sources-check` の attribution warning を対象 recipe 名つきで確認する
+- 公開前検査は strict 出典チェック、demo deep link、portfolio asset check、Markdown link / mojibake / progress index check 込みで pass。次は UI の実操作確認とタイトル仮デザインの整理を進める
 - 仮タイトル「完全栄養ランダム献立達人」の状態を維持しつつ、最終ロゴ化の方針を決める
 - 実データで `/recipes`、レシピ詳細、設定画面の固定導線を追加確認する
 - 変更後は `npm run check` / `git diff --check` / ブラウザ確認
@@ -489,7 +565,8 @@ Phase 4 (将来構想)     💭 アイデア
 - **JSONB カラム** (ingredients/steps/nutrition) と `DbRecipe` 型の整合性を要確認
 - **Supabase RLS** で全テーブルガード。サービスロールキーは `.env.local` のみ
 - **クライアントに送るデータ量**は意識する（`recipeMap` slim 化等）
-- **公開前導線**: `npm run check` と `npm run e2e:public` を両方通す
+- **公開前導線**: `npm run release:check` を通す。build 済みで E2E だけ再確認する場合は `npm run e2e:public:run`
+  - `release:check` は出典 warning も失敗扱いにする strict 検査を含む
 
 ---
 
@@ -515,6 +592,24 @@ npm run dev
 
 ## 関連ドキュメント
 
+- [`progress/PROGRESS_109.md`](progress/PROGRESS_109.md) — progress index check 追加
+- [`progress/PROGRESS_108.md`](progress/PROGRESS_108.md) — Markdown mojibake check 追加
+- [`progress/PROGRESS_107.md`](progress/PROGRESS_107.md) — Markdown local link check 追加
+- [`progress/PROGRESS_106.md`](progress/PROGRESS_106.md) — portfolio asset check 自己検査
+- [`progress/PROGRESS_105.md`](progress/PROGRESS_105.md) — portfolio asset check 追加
+- [`progress/PROGRESS_104.md`](progress/PROGRESS_104.md) — demo deep link E2E 追加
+- [`progress/PROGRESS_103.md`](progress/PROGRESS_103.md) — release check strict 化
+- [`progress/PROGRESS_102.md`](progress/PROGRESS_102.md) — source notes attribution 確定と release check pass
+- [`progress/PROGRESS_101.md`](progress/PROGRESS_101.md) — source notes report Markdown
+- [`progress/PROGRESS_100.md`](progress/PROGRESS_100.md) — source notes report JSON
+- [`progress/PROGRESS_99.md`](progress/PROGRESS_99.md) — workflow source notes summary
+- [`progress/PROGRESS_98.md`](progress/PROGRESS_98.md) — workflow source report action
+- [`progress/PROGRESS_97.md`](progress/PROGRESS_97.md) — source notes report 追加
+- [`progress/PROGRESS_96.md`](progress/PROGRESS_96.md) — source notes strict 検査
+- [`progress/PROGRESS_95.md`](progress/PROGRESS_95.md) — E2E build guard 自己検査
+- [`progress/PROGRESS_94.md`](progress/PROGRESS_94.md) — E2E build guard
+- [`progress/PROGRESS_93.md`](progress/PROGRESS_93.md) — release check build 再利用
+- [`progress/PROGRESS_92.md`](progress/PROGRESS_92.md) — 公開前 release check 追加
 - [`progress/PROGRESS_91.md`](progress/PROGRESS_91.md) — source notes warning 対象表示
 - [`progress/PROGRESS_90.md`](progress/PROGRESS_90.md) — 公開準備と E2E 導線
 - [`progress/PROGRESS_89.md`](progress/PROGRESS_89.md) — 仮タイトル確定と現在地の整理

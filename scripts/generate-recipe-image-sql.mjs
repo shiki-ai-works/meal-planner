@@ -121,6 +121,14 @@ const actualWorkflow = args.includes('--workflow')
 const actualWorkflowJson = args.includes('--workflow-json')
 const actualWorkflowSchema = args.includes('--workflow-schema')
 const actualSourcesCheck = args.includes('--sources-check')
+const actualSourcesReport = args.includes('--sources-report')
+const actualSourcesReportJson = args.includes('--sources-report-json')
+const actualSourcesReportMarkdown = args.includes('--sources-report-markdown')
+const actualSourcesMode =
+  actualSourcesCheck ||
+  actualSourcesReport ||
+  actualSourcesReportJson ||
+  actualSourcesReportMarkdown
 const actualWorkflowMode =
   actualWorkflow || actualWorkflowJson || actualWorkflowSchema
 const reportOnly = args.includes('--report')
@@ -172,7 +180,25 @@ if (missingMarkdown && !listMissingImagesOnly) {
 }
 
 if (
-  actualSourcesCheck &&
+  [
+    actualSourcesCheck,
+    actualSourcesReport,
+    actualSourcesReportJson,
+    actualSourcesReportMarkdown,
+  ].filter(Boolean).length > 1
+) {
+  fail('--sources modes cannot be used together')
+}
+
+if (
+  (actualSourcesReport || actualSourcesReportJson || actualSourcesReportMarkdown) &&
+  strict
+) {
+  fail('--sources-report modes cannot be used with --strict')
+}
+
+if (
+  actualSourcesMode &&
   (
     actualWorkflowMode ||
     checkOnly ||
@@ -183,7 +209,6 @@ if (
     reportOnly ||
     listMissingImagesOnly ||
     missingMarkdown ||
-    strict ||
     forceOutput ||
     outputSqlPath ||
     missingMarkdownOutputPath ||
@@ -191,7 +216,7 @@ if (
     manifestPath
   )
 ) {
-  fail('--sources-check cannot be combined with other modes, output options, or a manifest path')
+  fail('--sources modes cannot be combined with other modes, output options, or a manifest path')
 }
 
 if (missingMarkdownOutputPath && (!listMissingImagesOnly || !missingMarkdown)) {
@@ -309,9 +334,24 @@ if (actualSourcesCheck) {
   process.exit(0)
 }
 
+if (actualSourcesReport) {
+  runActualSourcesReport()
+  process.exit(0)
+}
+
+if (actualSourcesReportJson) {
+  runActualSourcesReportJson()
+  process.exit(0)
+}
+
+if (actualSourcesReportMarkdown) {
+  runActualSourcesReportMarkdown()
+  process.exit(0)
+}
+
 if (!manifestPath) {
   console.error(
-    'Usage: node scripts/generate-recipe-image-sql.mjs <manifest.json> [--check] [--report] [--list-missing-images] [--missing-markdown] [--missing-output <file>] [--allow-empty] [--require-seed-recipes] [--check-generated-template] [--strict] [--output <file>] [--force]\n       node scripts/generate-recipe-image-sql.mjs --print-template\n       node scripts/generate-recipe-image-sql.mjs --template-output <file> [--force]\n       node scripts/generate-recipe-image-sql.mjs --workflow\n       node scripts/generate-recipe-image-sql.mjs --workflow-json\n       node scripts/generate-recipe-image-sql.mjs --workflow-schema\n       node scripts/generate-recipe-image-sql.mjs --sources-check',
+    'Usage: node scripts/generate-recipe-image-sql.mjs <manifest.json> [--check] [--report] [--list-missing-images] [--missing-markdown] [--missing-output <file>] [--allow-empty] [--require-seed-recipes] [--check-generated-template] [--strict] [--output <file>] [--force]\n       node scripts/generate-recipe-image-sql.mjs --print-template\n       node scripts/generate-recipe-image-sql.mjs --template-output <file> [--force]\n       node scripts/generate-recipe-image-sql.mjs --workflow\n       node scripts/generate-recipe-image-sql.mjs --workflow-json\n       node scripts/generate-recipe-image-sql.mjs --workflow-schema\n       node scripts/generate-recipe-image-sql.mjs --sources-check [--strict]\n       node scripts/generate-recipe-image-sql.mjs --sources-report\n       node scripts/generate-recipe-image-sql.mjs --sources-report-json\n       node scripts/generate-recipe-image-sql.mjs --sources-report-markdown',
   )
   process.exit(1)
 }
@@ -468,6 +508,7 @@ function validateSourceNotes(actualRecipes, sourceNotes) {
       expectedUrlCount: actualEntries.length,
       placeholderAttributionCount: 0,
       placeholderAttributionRecipes: [],
+      placeholderAttributionSources: [],
     }
   }
 
@@ -475,6 +516,7 @@ function validateSourceNotes(actualRecipes, sourceNotes) {
   const allowedFits = new Set(['exact', 'close', 'representative'])
   let placeholderAttributionCount = 0
   const placeholderAttributionRecipes = []
+  const placeholderAttributionSources = []
 
   sourceNotes.sources.forEach((source, index) => {
     const label = `sources[${index}]`
@@ -509,6 +551,14 @@ function validateSourceNotes(actualRecipes, sourceNotes) {
     if (author.startsWith('See ') || license.startsWith('See ')) {
       placeholderAttributionCount++
       if (recipeName) placeholderAttributionRecipes.push(recipeName)
+      placeholderAttributionSources.push({
+        index,
+        recipeName,
+        imageUrl,
+        sourcePageUrl,
+        author,
+        license,
+      })
     }
 
     if (!recipeName || !imageUrl) return
@@ -545,6 +595,7 @@ function validateSourceNotes(actualRecipes, sourceNotes) {
     expectedUrlCount: actualEntries.length,
     placeholderAttributionCount,
     placeholderAttributionRecipes,
+    placeholderAttributionSources,
   }
 }
 
@@ -554,7 +605,7 @@ function formatNameList(values, { limit = 12 } = {}) {
   return `${values.slice(0, limit).join(', ')} (+${values.length - limit} more)`
 }
 
-function runActualSourcesCheck() {
+function readActualSourceState() {
   const actualManifest = readManifest(actualManifestPath)
   if (!Array.isArray(actualManifest.recipes)) {
     fail('manifest.recipes must be an array')
@@ -574,6 +625,26 @@ function runActualSourcesCheck() {
   ]
   const warnings = [...validation.warnings, ...sourceValidation.warnings]
 
+  return {
+    sourceValidation,
+    errors,
+    warnings,
+  }
+}
+
+function runActualSourcesCheck() {
+  const state = readActualSourceState()
+  const { sourceValidation } = state
+  const errors = [...state.errors]
+  let warnings = [...state.warnings]
+
+  if (strict && warnings.length > 0) {
+    errors.push(
+      ...warnings.map((warning) => `strict mode rejects source warning: ${warning}`),
+    )
+    warnings = []
+  }
+
   for (const warning of warnings) {
     console.error(`Warning: ${warning}`)
   }
@@ -591,6 +662,150 @@ function runActualSourcesCheck() {
   console.log(
     `OK: checked ${sourceValidation.sourceCount} source note(s) in ${actualSourcesPath}`,
   )
+}
+
+function runActualSourcesReport() {
+  const { sourceValidation, errors, warnings } = readActualSourceState()
+
+  console.log('Recipe image source notes report')
+  console.log(`- actual manifest: ${actualManifestPath}`)
+  console.log(`- source notes: ${actualSourcesPath}`)
+  console.log(`- expected recipe image URLs: ${sourceValidation.expectedUrlCount}`)
+  console.log(`- source notes checked: ${sourceValidation.sourceCount}`)
+  console.log(
+    `- placeholder attribution warnings: ${sourceValidation.placeholderAttributionCount}`,
+  )
+  console.log(`- warnings: ${warnings.length}`)
+  console.log(`- errors: ${errors.length}`)
+  console.log('- next actions:')
+  if (errors.length > 0) {
+    console.log('  - fix the errors printed below')
+  } else if (sourceValidation.placeholderAttributionSources.length > 0) {
+    console.log(
+      `  - review attribution/license on ${sourceValidation.placeholderAttributionSources.length} source page(s)`,
+    )
+  } else if (warnings.length > 0) {
+    console.log('  - review the warnings printed by recipe-images:sources-check')
+  } else {
+    console.log('  - run npm.cmd run recipe-images:sources-check:strict before release')
+  }
+
+  if (sourceValidation.placeholderAttributionSources.length > 0) {
+    console.log('- placeholder attribution review:')
+    for (const source of sourceValidation.placeholderAttributionSources) {
+      const label = source.recipeName || `sources[${source.index}]`
+      console.log(`  - ${label}`)
+      console.log(`    source: ${source.sourcePageUrl || '(missing)'}`)
+      console.log(`    image: ${source.imageUrl || '(missing)'}`)
+      console.log(`    author: ${source.author || '(missing)'}`)
+      console.log(`    license: ${source.license || '(missing)'}`)
+    }
+  }
+
+  if (errors.length > 0) {
+    for (const error of errors) {
+      console.error(`Error: ${error}`)
+    }
+    process.exit(1)
+  }
+}
+
+function buildActualSourcesReportPayload() {
+  const { sourceValidation, errors, warnings } = readActualSourceState()
+
+  return {
+    schemaVersion: 1,
+    actualManifestPath,
+    actualSourcesPath,
+    expectedUrlCount: sourceValidation.expectedUrlCount,
+    sourceCount: sourceValidation.sourceCount,
+    warnings,
+    errors,
+    placeholderAttributionCount: sourceValidation.placeholderAttributionCount,
+    placeholderAttributionSources: sourceValidation.placeholderAttributionSources.map(
+      (source) => ({
+        index: source.index,
+        recipe: source.recipeName,
+        sourcePageUrl: source.sourcePageUrl,
+        imageUrl: source.imageUrl,
+        author: source.author,
+        license: source.license,
+      }),
+    ),
+    nextActions:
+      errors.length > 0
+        ? ['fix source note errors']
+        : sourceValidation.placeholderAttributionSources.length > 0
+          ? [
+              `review attribution/license on ${sourceValidation.placeholderAttributionSources.length} source page(s)`,
+            ]
+          : warnings.length > 0
+            ? ['review warnings from recipe-images:sources-check']
+            : ['run npm.cmd run recipe-images:sources-check:strict before release'],
+  }
+}
+
+function runActualSourcesReportJson() {
+  const payload = buildActualSourcesReportPayload()
+  process.stdout.write(formatJson(payload))
+  if (payload.errors.length > 0) {
+    process.exit(1)
+  }
+}
+
+function formatActualSourcesReportMarkdown(payload) {
+  const lines = [
+    '# Recipe Image Source Review',
+    '',
+    `- actual manifest: \`${payload.actualManifestPath}\``,
+    `- source notes: \`${payload.actualSourcesPath}\``,
+    `- expected recipe image URLs: ${payload.expectedUrlCount}`,
+    `- source notes checked: ${payload.sourceCount}`,
+    `- placeholder attribution warnings: ${payload.placeholderAttributionCount}`,
+    `- warnings: ${payload.warnings.length}`,
+    `- errors: ${payload.errors.length}`,
+    '',
+  ]
+
+  if (payload.errors.length > 0) {
+    lines.push('## Errors', '')
+    for (const error of payload.errors) {
+      lines.push(`- ${error}`)
+    }
+    lines.push('')
+  }
+
+  if (payload.placeholderAttributionSources.length > 0) {
+    lines.push('## Placeholder Attribution Review', '')
+    for (const source of payload.placeholderAttributionSources) {
+      lines.push(`- [ ] ${source.recipe}`)
+      lines.push(`  - source: ${source.sourcePageUrl || '(missing)'}`)
+      lines.push(`  - image: ${source.imageUrl || '(missing)'}`)
+      lines.push(`  - current author: ${source.author || '(missing)'}`)
+      lines.push(`  - current license: ${source.license || '(missing)'}`)
+      lines.push('  - update author/license in source notes and attributions')
+    }
+    lines.push('')
+  } else if (payload.errors.length === 0) {
+    lines.push('## Placeholder Attribution Review', '')
+    lines.push('- [x] No placeholder attribution warnings remain.')
+    lines.push('')
+  }
+
+  lines.push('## Next Actions', '')
+  for (const action of payload.nextActions) {
+    lines.push(`- ${action}`)
+  }
+
+  return `${lines.join('\n')}\n`
+}
+
+function runActualSourcesReportMarkdown() {
+  const payload = buildActualSourcesReportPayload()
+  process.stdout.write(formatActualSourcesReportMarkdown(payload))
+  if (payload.errors.length > 0) {
+    process.exit(1)
+  }
 }
 
 function sqlStringValue(value) {
@@ -819,6 +1034,7 @@ function buildActualWorkflowNextActionItems({
   hasSources,
   isReady,
   migrationSync,
+  sourceNotesSummary,
   validation,
 }) {
   const actions = []
@@ -884,7 +1100,7 @@ function buildActualWorkflowNextActionItems({
         buildPathDetails(actualManifestPath),
       ),
     )
-    actions.push(...buildSourceNoteActions(hasSources))
+    actions.push(...buildSourceNoteActions(hasSources, sourceNotesSummary))
     actions.push(
       buildCommandAction(
         'generate-actual-migration',
@@ -900,7 +1116,7 @@ function buildActualWorkflowNextActionItems({
         buildPathDetails(actualManifestPath),
       ),
     )
-    actions.push(...buildSourceNoteActions(hasSources))
+    actions.push(...buildSourceNoteActions(hasSources, sourceNotesSummary))
     actions.push(
       buildCommandAction(
         'regenerate-actual-migration',
@@ -916,7 +1132,7 @@ function buildActualWorkflowNextActionItems({
         buildPathDetails(actualManifestPath),
       ),
     )
-    actions.push(...buildSourceNoteActions(hasSources))
+    actions.push(...buildSourceNoteActions(hasSources, sourceNotesSummary))
     actions.push(
       buildManualAction(
         'apply-actual-migration',
@@ -939,7 +1155,7 @@ function buildActualWorkflowNextActionItems({
   return actions
 }
 
-function buildSourceNoteActions(hasSources) {
+function buildSourceNoteActions(hasSources, sourceNotesSummary = null) {
   if (!hasSources) {
     return [
       buildManualAction(
@@ -950,11 +1166,22 @@ function buildSourceNoteActions(hasSources) {
     ]
   }
 
+  const reportDetails = buildPathsDetails([actualSourcesPath, actualManifestPath])
+  if (sourceNotesSummary?.placeholderAttributionWarnings > 0) {
+    reportDetails.count = sourceNotesSummary.placeholderAttributionWarnings
+    reportDetails.label = `run npm.cmd run recipe-images:sources-report (${sourceNotesSummary.placeholderAttributionWarnings} warning target(s))`
+  }
+
   return [
     buildCommandAction(
       'check-image-sources',
       'npm.cmd run recipe-images:sources-check',
       buildPathsDetails([actualSourcesPath, actualManifestPath]),
+    ),
+    buildCommandAction(
+      'review-image-source-warnings',
+      'npm.cmd run recipe-images:sources-report',
+      reportDetails,
     ),
   ]
 }
@@ -974,6 +1201,31 @@ function buildActualWorkflowStatus({
   if (migrationSync === 'outdated') return 'migration-outdated'
   if (migrationSync === 'current') return 'ready-to-apply-migration'
   return 'ready'
+}
+
+function buildActualWorkflowSourceNotesSummary(actualRecipes, hasSources) {
+  if (!hasSources) {
+    return {
+      status: 'missing',
+      sourceCount: 0,
+      expectedUrlCount: 0,
+      warnings: 0,
+      errors: 0,
+      placeholderAttributionWarnings: 0,
+    }
+  }
+
+  const sourceNotes = readManifest(actualSourcesPath)
+  const validation = validateSourceNotes(actualRecipes, sourceNotes)
+
+  return {
+    status: 'present',
+    sourceCount: validation.sourceCount,
+    expectedUrlCount: validation.expectedUrlCount,
+    warnings: validation.warnings.length,
+    errors: validation.errors.length,
+    placeholderAttributionWarnings: validation.placeholderAttributionCount,
+  }
 }
 
 function buildActualWorkflowSchema() {
@@ -1009,6 +1261,7 @@ function buildActualWorkflowSchema() {
           totalImageUrls: 'number',
           warnings: 'number',
           errors: 'number',
+          sourceNotes: 'SourceNotesSummary',
           readyForActualMigration: 'boolean',
           migrationSync: 'string',
         },
@@ -1030,6 +1283,17 @@ function buildActualWorkflowSchema() {
           path: 'string',
           status: ['present', 'missing'],
           exists: 'boolean',
+        },
+      },
+      SourceNotesSummary: {
+        type: 'object',
+        fields: {
+          status: ['present', 'missing'],
+          sourceCount: 'number',
+          expectedUrlCount: 'number',
+          warnings: 'number',
+          errors: 'number',
+          placeholderAttributionWarnings: 'number',
         },
       },
       WorkflowActionItem: {
@@ -1123,6 +1387,10 @@ function buildActualWorkflow() {
     validation.emptyUrlCount === 0 &&
     validation.recipeCount === seedValidation.seedRecipeCount
 
+  const sourceNotesSummary = buildActualWorkflowSourceNotesSummary(
+    manifest.recipes,
+    hasSources,
+  )
   const migrationSync = formatActualMigrationSync({
     hasMigration,
     isReady,
@@ -1140,6 +1408,7 @@ function buildActualWorkflow() {
     hasSources,
     isReady,
     migrationSync,
+    sourceNotesSummary,
     validation,
   })
 
@@ -1155,6 +1424,7 @@ function buildActualWorkflow() {
       totalImageUrls: validation.totalUrlCount,
       warnings: validation.warnings.length,
       errors: validation.errors.length,
+      sourceNotes: sourceNotesSummary,
       readyForActualMigration: isReady,
       migrationSync,
     },
@@ -1183,6 +1453,11 @@ function printActualWorkflow(workflow = buildActualWorkflow()) {
   console.log(`- total image URLs: ${workflow.summary.totalImageUrls}`)
   console.log(`- warnings: ${workflow.summary.warnings}`)
   console.log(`- errors: ${workflow.summary.errors}`)
+  console.log(`- source note warnings: ${workflow.summary.sourceNotes.warnings}`)
+  console.log(`- source note errors: ${workflow.summary.sourceNotes.errors}`)
+  console.log(
+    `- placeholder attribution warnings: ${workflow.summary.sourceNotes.placeholderAttributionWarnings}`,
+  )
   console.log(
     `- ready for recipe-images:actual-migration: ${formatReadiness(workflow.summary.readyForActualMigration)}`,
   )

@@ -254,6 +254,15 @@ withTempWorkspace((cwd) => {
     schema.fields.files.fields.sourceNotes === 'WorkflowFileState',
     'workflow schema should document source notes file state',
   )
+  assert(
+    schema.fields.summary.fields.sourceNotes === 'SourceNotesSummary',
+    'workflow schema should document source notes summary',
+  )
+  assert(
+    schema.definitions.SourceNotesSummary.fields.placeholderAttributionWarnings ===
+      'number',
+    'workflow schema should document source note placeholder warning count',
+  )
 })
 
 withTempWorkspace((cwd) => {
@@ -465,6 +474,10 @@ withTempWorkspace((cwd) => {
     'current migration should report current sync',
   )
   assert(
+    workflow.summary.sourceNotes.placeholderAttributionWarnings === 0,
+    'current migration should report source note placeholder warning count',
+  )
+  assert(
     workflow.nextActionItems.some((action) => action.id === 'apply-actual-migration'),
     'current migration should expose structured apply action',
   )
@@ -473,9 +486,23 @@ withTempWorkspace((cwd) => {
     'current migration should expose source notes check action when source notes exist',
   )
   assert(
+    workflow.nextActionItems.some(
+      (action) =>
+        action.id === 'review-image-source-warnings' &&
+        action.command === 'npm.cmd run recipe-images:sources-report',
+    ),
+    'current migration should expose source notes report action when source notes exist',
+  )
+  assert(
     workflow.nextActionItems.find((action) => action.id === 'check-image-sources')
       .paths.includes('supabase/recipe-images.actual.json'),
     'source notes check action should expose actual manifest path',
+  )
+  assert(
+    workflow.nextActionItems.find(
+      (action) => action.id === 'review-image-source-warnings',
+    ).paths.includes('supabase/recipe-images.sources.json'),
+    'source notes report action should expose source notes path',
   )
   assert(
     workflow.nextActionItems.find((action) => action.id === 'apply-actual-migration')
@@ -512,6 +539,118 @@ withTempWorkspace((cwd) => {
     result.stderr.includes('Breakfast Rice'),
     'placeholder attribution warning should name the recipe to review',
   )
+
+  const workflow = readWorkflowJson(cwd)
+  assert(
+    workflow.summary.sourceNotes.placeholderAttributionWarnings === 1,
+    'workflow should report source note placeholder warning count',
+  )
+  const reportAction = workflow.nextActionItems.find(
+    (action) => action.id === 'review-image-source-warnings',
+  )
+  assert(
+    reportAction.count === 1,
+    'workflow source notes report action should expose placeholder warning count',
+  )
+  assert(
+    reportAction.label.includes('1 warning target(s)'),
+    'workflow source notes report action should include placeholder warning count in label',
+  )
+
+  const strictResult = runRecipeImageScript(cwd, ['--sources-check', '--strict'])
+  assert(
+    strictResult.status === 1,
+    'strict source notes check should fail on placeholder attribution warnings',
+  )
+  assert(
+    strictResult.stderr.includes('strict mode rejects source warning'),
+    'strict source notes check should reject placeholder warnings',
+  )
+  assert(
+    strictResult.stderr.includes('Breakfast Rice'),
+    'strict source notes check should name the recipe to review',
+  )
+
+  const reportResult = runRecipeImageScript(cwd, ['--sources-report'])
+  assert(
+    reportResult.status === 0,
+    'source notes report should pass with placeholder attribution warnings',
+  )
+  assert(
+    reportResult.stderr === '',
+    'source notes report should keep warning details in stdout',
+  )
+  assert(
+    reportResult.stdout.includes('Recipe image source notes report'),
+    'source notes report should print a report title',
+  )
+  assert(
+    reportResult.stdout.includes('review attribution/license on 1 source page(s)'),
+    'source notes report should explain the next review action',
+  )
+  assert(
+    reportResult.stdout.includes('Breakfast Rice'),
+    'source notes report should name the recipe to review',
+  )
+  assert(
+    reportResult.stdout.includes('https://sources.local/breakfast-rice'),
+    'source notes report should include the source page URL',
+  )
+  assert(
+    reportResult.stdout.includes('https://images.local/breakfast-rice.jpg'),
+    'source notes report should include the image URL',
+  )
+
+  const jsonResult = runRecipeImageScript(cwd, ['--sources-report-json'])
+  assert(
+    jsonResult.status === 0,
+    'source notes JSON report should pass with placeholder attribution warnings',
+  )
+  assert(
+    jsonResult.stderr === '',
+    'source notes JSON report should not write warnings to stderr',
+  )
+  const report = parseJson(jsonResult.stdout)
+  assert(report.schemaVersion === 1, 'source notes JSON report should include schema version')
+  assert(
+    report.placeholderAttributionCount === 1,
+    'source notes JSON report should count placeholder attribution warnings',
+  )
+  assert(
+    report.placeholderAttributionSources[0].recipe === 'Breakfast Rice',
+    'source notes JSON report should include the recipe to review',
+  )
+  assert(
+    report.placeholderAttributionSources[0].sourcePageUrl ===
+      'https://sources.local/breakfast-rice',
+    'source notes JSON report should include the source page URL',
+  )
+  assert(
+    report.nextActions[0].includes('review attribution/license on 1 source page(s)'),
+    'source notes JSON report should include the next review action',
+  )
+
+  const markdownResult = runRecipeImageScript(cwd, ['--sources-report-markdown'])
+  assert(
+    markdownResult.status === 0,
+    'source notes Markdown report should pass with placeholder attribution warnings',
+  )
+  assert(
+    markdownResult.stderr === '',
+    'source notes Markdown report should keep warning details in stdout',
+  )
+  assert(
+    markdownResult.stdout.includes('# Recipe Image Source Review'),
+    'source notes Markdown report should include a title',
+  )
+  assert(
+    markdownResult.stdout.includes('- [ ] Breakfast Rice'),
+    'source notes Markdown report should include a review checkbox',
+  )
+  assert(
+    markdownResult.stdout.includes('source: https://sources.local/breakfast-rice'),
+    'source notes Markdown report should include the source page URL',
+  )
 })
 
 withTempWorkspace((cwd) => {
@@ -525,6 +664,37 @@ withTempWorkspace((cwd) => {
   assert(
     result.stdout.includes('OK: source notes cover 2 recipe image URL(s)'),
     'source notes check should report coverage',
+  )
+
+  const reportResult = runRecipeImageScript(cwd, ['--sources-report'])
+  assert(reportResult.status === 0, 'complete source notes report should pass')
+  assert(
+    reportResult.stdout.includes('placeholder attribution warnings: 0'),
+    'complete source notes report should show zero placeholder warnings',
+  )
+  assert(
+    reportResult.stdout.includes('run npm.cmd run recipe-images:sources-check:strict'),
+    'complete source notes report should point to strict release verification',
+  )
+
+  const jsonResult = runRecipeImageScript(cwd, ['--sources-report-json'])
+  assert(jsonResult.status === 0, 'complete source notes JSON report should pass')
+  const report = parseJson(jsonResult.stdout)
+  assert(
+    report.placeholderAttributionCount === 0,
+    'complete source notes JSON report should show zero placeholder warnings',
+  )
+  assert(
+    report.nextActions[0] ===
+      'run npm.cmd run recipe-images:sources-check:strict before release',
+    'complete source notes JSON report should point to strict release verification',
+  )
+
+  const markdownResult = runRecipeImageScript(cwd, ['--sources-report-markdown'])
+  assert(markdownResult.status === 0, 'complete source notes Markdown report should pass')
+  assert(
+    markdownResult.stdout.includes('- [x] No placeholder attribution warnings remain.'),
+    'complete source notes Markdown report should show completed review state',
   )
 })
 
@@ -547,6 +717,31 @@ withTempWorkspace((cwd) => {
   assert(
     result.stderr.includes('missing source note for image_url'),
     'source notes check should explain missing notes',
+  )
+
+  const jsonResult = runRecipeImageScript(cwd, ['--sources-report-json'])
+  assert(
+    jsonResult.status === 1,
+    'source notes JSON report should fail when a URL lacks a source note',
+  )
+  assert(
+    jsonResult.stderr === '',
+    'source notes JSON report should keep error details in JSON stdout',
+  )
+  const report = parseJson(jsonResult.stdout)
+  assert(
+    report.errors.some((error) => error.includes('missing source note for image_url')),
+    'source notes JSON report should include missing note errors',
+  )
+
+  const markdownResult = runRecipeImageScript(cwd, ['--sources-report-markdown'])
+  assert(
+    markdownResult.status === 1,
+    'source notes Markdown report should fail when a URL lacks a source note',
+  )
+  assert(
+    markdownResult.stdout.includes('## Errors'),
+    'source notes Markdown report should include an errors section',
   )
 })
 

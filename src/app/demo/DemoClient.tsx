@@ -152,6 +152,12 @@ function getPfc(recipe: DbRecipe) {
   }
 }
 
+function parseDemoSection(value: string | null): DemoSectionId {
+  return DEMO_SECTIONS.some((section) => section.id === value)
+    ? (value as DemoSectionId)
+    : 'week'
+}
+
 function DemoRecipeDetail({
   recipe,
   onClose,
@@ -298,6 +304,11 @@ function DemoRecipeDetail({
 }
 
 export function DemoClient() {
+  const recipeMap = useMemo(() => {
+    const map = new Map<string, DbRecipe>()
+    for (const recipe of DEMO_RECIPES) map.set(recipe.id, recipe)
+    return map
+  }, [])
   const [personaId, setPersonaId] = useState<PersonaId>('mei')
   const [seed, setSeed] = useState(INITIAL_SEED)
   const [locks, setLocks] = useState<DbLockedMeal[]>(() =>
@@ -310,12 +321,6 @@ export function DemoClient() {
   const [selectedRecipe, setSelectedRecipe] = useState<DbRecipe | null>(null)
   const [lockMessage, setLockMessage] = useState<string | null>(null)
   const [activeSection, setActiveSection] = useState<DemoSectionId>('week')
-
-  const recipeMap = useMemo(() => {
-    const map = new Map<string, DbRecipe>()
-    for (const recipe of DEMO_RECIPES) map.set(recipe.id, recipe)
-    return map
-  }, [])
   const shoppingGrouped = useMemo(
     () =>
       buildShoppingList({
@@ -344,6 +349,20 @@ export function DemoClient() {
     checkedItems.has(itemKey(item)),
   ).length
   const remainingShoppingCount = Math.max(shoppingItems.length - checkedCount, 0)
+
+  useEffect(() => {
+    function syncFromQuery() {
+      const params = new URLSearchParams(window.location.search)
+      setActiveSection(parseDemoSection(params.get('section')))
+
+      const recipeId = params.get('recipe')
+      setSelectedRecipe(recipeId ? recipeMap.get(recipeId) ?? null : null)
+    }
+
+    syncFromQuery()
+    window.addEventListener('popstate', syncFromQuery)
+    return () => window.removeEventListener('popstate', syncFromQuery)
+  }, [recipeMap])
 
   useEffect(() => {
     if (!selectedRecipe) return

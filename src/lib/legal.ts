@@ -35,8 +35,8 @@ export const imageAttributions: ImageAttribution[] = [
   {
     recipe: 'トースト＋目玉焼き＋サラダ',
     sourcePageUrl: 'https://commons.wikimedia.org/wiki/File:Fancy_Toast_(Unsplash).jpg',
-    author: 'See Wikimedia Commons file page',
-    license: 'See Wikimedia Commons file page',
+    author: 'Joseph Gonzalez / miracletwentyone',
+    license: 'CC0 1.0',
     fit: 'close',
   },
   {
@@ -56,8 +56,8 @@ export const imageAttributions: ImageAttribution[] = [
   {
     recipe: 'ヨーグルトパフェ',
     sourcePageUrl: 'https://commons.wikimedia.org/wiki/File:Yogurt_parfait_with_granola_and_blueberries_in_shot_glasses_with_silverware_spoons_(17098581522).jpg',
-    author: 'See Wikimedia Commons file page',
-    license: 'See Wikimedia Commons file page',
+    author: 'Personal Creations',
+    license: 'CC BY 2.0',
     fit: 'exact',
   },
   {
@@ -98,8 +98,8 @@ export const imageAttributions: ImageAttribution[] = [
   {
     recipe: '豚汁定食',
     sourcePageUrl: 'https://commons.wikimedia.org/wiki/File:Butajiru_by_kina3.jpg',
-    author: 'See Wikimedia Commons file page',
-    license: 'See Wikimedia Commons file page',
+    author: 'kina3',
+    license: 'CC BY 2.0',
     fit: 'exact',
   },
   {
@@ -119,15 +119,15 @@ export const imageAttributions: ImageAttribution[] = [
   {
     recipe: 'パスタ ナポリタン',
     sourcePageUrl: 'https://commons.wikimedia.org/wiki/File:Spaghetti_alle_vongole_napolitano.JPG',
-    author: 'See Wikimedia Commons file page',
-    license: 'See Wikimedia Commons file page',
+    author: 'Irureta',
+    license: 'CC BY-SA 3.0',
     fit: 'close',
   },
   {
     recipe: '蒸し鶏の冷やしうどん',
     sourcePageUrl: 'https://commons.wikimedia.org/wiki/File:Cold_Udon_with_Plum_and_Seaweed_at_Muguinb%C5%8D,_Shinagawa_Kitchen_(20230801172642).jpg',
-    author: 'See Wikimedia Commons file page',
-    license: 'See Wikimedia Commons file page',
+    author: 'N509FZ',
+    license: 'CC BY-SA 4.0',
     fit: 'close',
   },
   {
@@ -196,8 +196,8 @@ export const imageAttributions: ImageAttribution[] = [
   {
     recipe: '親子丼',
     sourcePageUrl: 'https://commons.wikimedia.org/wiki/File:Oyakodon_003.jpg',
-    author: 'See Wikimedia Commons file page',
-    license: 'See Wikimedia Commons file page',
+    author: 'Ocdp',
+    license: 'CC0 1.0',
     fit: 'exact',
   },
   {
@@ -210,8 +210,8 @@ export const imageAttributions: ImageAttribution[] = [
   {
     recipe: 'ぶり大根',
     sourcePageUrl: 'https://commons.wikimedia.org/wiki/File:Buri-daikon_002.jpg',
-    author: 'See Wikimedia Commons file page',
-    license: 'See Wikimedia Commons file page',
+    author: 'Ocdp',
+    license: 'CC0 1.0',
     fit: 'exact',
   },
   {
@@ -224,7 +224,7 @@ export const imageAttributions: ImageAttribution[] = [
   {
     recipe: 'バンバンジー（棒棒鶏）',
     sourcePageUrl: 'https://commons.wikimedia.org/wiki/File:Bon_bon_chicken_1.jpg',
-    author: 'See Wikimedia Commons file page',
+    author: 'Yumi Kimura',
     license: 'CC BY-SA 2.0',
     fit: 'exact',
   },
@@ -245,8 +245,8 @@ export const imageAttributions: ImageAttribution[] = [
   {
     recipe: '鶏とごろごろ野菜のクリームシチュー',
     sourcePageUrl: 'https://commons.wikimedia.org/wiki/File:Cream_Stew_001.jpg',
-    author: 'See Wikimedia Commons file page',
-    license: 'See Wikimedia Commons file page',
+    author: 'Ocdp',
+    license: 'CC0 1.0',
     fit: 'exact',
   },
   {
