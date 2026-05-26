@@ -15,10 +15,16 @@
 
 - ブランチ: `main`
 - リモート: `origin https://github.com/shiki-ai-works/meal-planner.git`
-- 最新 commit: `f06b63c Add productization safeguards and onboarding flow`
-- この commit は `origin/main` に push 済み。
-- push 後の確認では作業ツリーは clean だった。
-- Obsidian vault は今回触っていない。ユーザーが別途頼んだときだけ扱う。
+- 最新 commit: `e2c6a4d Document nextchat handoff workflow`
+- `main...origin/main` で、現時点のブランチ差分はなし。
+- ただし作業ツリーには未コミット変更がある。
+  - `NEXT_CHAT_HANDOFF.md`
+  - `ROADMAP.md`
+  - `src/app/(main)/recipes/RecipesClient.tsx`
+  - `progress/PROGRESS_133.md`
+  - `progress/PROGRESS_134.md`
+- PROGRESS_133 / PROGRESS_134 の project commit / push はまだしていない。
+- Obsidian vault には `projects/完全栄養ランダム献立達人_Next Chat引き継ぎ.md` として、この引き継ぎを保存する。
 
 ## このセッションで決めたこと
 
@@ -108,9 +114,11 @@
 - delete API の確認 header guard
 - private API の `Cache-Control: no-store` guard
 - public E2E、auth E2E、各種自己テスト
+- レシピ検索の `条件をリセット` 導線
+- レシピ検索の `適用中` 条件チップ
 - 法務表示、privacy、terms まわりの確認
 - deployment、README、ROADMAP の整備
-- progress notes `PROGRESS_110` から `PROGRESS_132`
+- progress notes `PROGRESS_110` から `PROGRESS_134`
 - 製品化ガイダンスを `AGENTS.md` に追記
 
 用語メモ:
@@ -128,11 +136,25 @@
 直近で成功した検証:
 
 ```powershell
+npm.cmd run docs:progress-index
+npm.cmd run docs:links
+npm.cmd run docs:mojibake
+npm.cmd run typecheck
+npm.cmd run check
 git diff --check
-npm.cmd run release:check
 ```
 
+`git diff --check` は CRLF 警告のみで、whitespace error は出ていない。
+
+`npm.cmd run release:check` は PROGRESS_134 後に再実行し、pass 済み。
+
 `npm.cmd run release:check` には、型チェック、Lint、ビルド、ドキュメント検査、画像出典チェック、公開 E2E が含まれる。
+
+現在の起動確認:
+
+```powershell
+http://127.0.0.1:3000/login -> 200
+```
 
 公開 E2E では以下も確認済み:
 
@@ -156,6 +178,7 @@ npm.cmd run release:check
 - 本番データでの実利用確認。
 - 認証つき E2E の実行。`E2E_AUTH_EMAIL` と `E2E_AUTH_PASSWORD` が必要。
 - Supabase migration の本番適用状況の再確認。
+- project 側の PROGRESS_133 / PROGRESS_134 変更は、このあと commit / push 済みかを `git status --short --branch` で確認する。
 
 ### 重要
 

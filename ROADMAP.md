@@ -3,7 +3,7 @@
 > プロジェクト全体の中長期計画。**「次に何をやるか」と「将来どこに向かうか」**を 1 ファイルで把握。
 > セッションごとの細かい進捗は `progress/PROGRESS_NN.md`、メモリ運用は Claude 側の `project_meal_planner.md` を参照。
 
-**最終更新:** 2026-05-26 (PROGRESS_132 時点。auth generate-plan no-store E2E coverage まで反映)
+**最終更新:** 2026-05-26 (PROGRESS_134 時点。レシピ検索の適用条件表示まで反映)
 
 ---
 
@@ -554,6 +554,14 @@ Phase 4 (将来構想)     💭 アイデア
   - 認証付き E2E の成功系 `POST /api/generate-plan` でも `Cache-Control: no-store` を確認
   - `private-api:cache` が auth E2E の generate-plan no-store 確認も見るようにした
   - `private-api:cache:test` に、auth E2E から generate-plan の no-store 確認が消えた時の失敗ケースを追加
+- ✅ レシピ検索リセット導線 追加（PROGRESS_133）
+  - `/recipes` の検索・絞り込み条件が有効な時、結果数の横に `条件をリセット` を表示
+  - 空状態まで行かなくても検索条件を戻せるようにし、実操作時の迷いを減らした
+  - リセット対象は検索語、食事、ジャンル、調理時間、kcal、PFC、在庫一致、並び順
+- ✅ レシピ検索の適用条件表示 追加（PROGRESS_134）
+  - `/recipes` の検索・絞り込み条件が有効な時、`適用中` チップで条件名を表示
+  - 検索語、食事、ジャンル、時間、kcal、PFC、在庫一致、並び順を一覧できるようにした
+  - `条件をリセット` の対象が見えるため、複数条件を触った後の迷いを減らした
 
 ### 進行中 🚧
 - 🚧 **タイトル仮デザイン**
@@ -684,6 +692,8 @@ npm run dev
 
 ## 関連ドキュメント
 
+- [`progress/PROGRESS_134.md`](progress/PROGRESS_134.md) — レシピ検索の適用条件表示
+- [`progress/PROGRESS_133.md`](progress/PROGRESS_133.md) — レシピ検索リセット導線
 - [`progress/PROGRESS_132.md`](progress/PROGRESS_132.md) — auth generate-plan no-store E2E coverage
 - [`progress/PROGRESS_131.md`](progress/PROGRESS_131.md) — auth E2E no-store guard
 - [`progress/PROGRESS_130.md`](progress/PROGRESS_130.md) — private API no-store negative E2E self-test

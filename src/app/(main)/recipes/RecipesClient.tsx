@@ -224,6 +224,48 @@ export function RecipesClient({ recipes, inventoryNames }: Props) {
     (recipe) => (inventoryMatches.get(recipe.id) ?? EMPTY_INVENTORY_MATCH).score >= 80,
   ).length
   const hasNutritionFilters = maxCalories > 0 || nutritionFilters.length > 0
+  const hasActiveFilters =
+    normalizedQuery.length > 0 ||
+    mealType !== 'all' ||
+    cuisine !== 'all' ||
+    maxMinutes > 0 ||
+    maxCalories > 0 ||
+    nutritionFilters.length > 0 ||
+    inventoryOnly ||
+    sortMode !== 'time'
+  const activeFilterLabels = [
+    normalizedQuery ? `検索: ${query.trim()}` : null,
+    mealType !== 'all'
+      ? `食事: ${MEAL_FILTERS.find((item) => item.value === mealType)?.label ?? mealType}`
+      : null,
+    cuisine !== 'all'
+      ? `ジャンル: ${
+          CUISINE_FILTERS.find((item) => item.value === cuisine)?.label ?? cuisine
+        }`
+      : null,
+    maxMinutes > 0
+      ? `時間: ${
+          TIME_FILTERS.find((item) => item.value === maxMinutes)?.label ?? `${maxMinutes}分以内`
+        }`
+      : null,
+    maxCalories > 0
+      ? `kcal: ${
+          CALORIE_FILTERS.find((item) => item.value === maxCalories)?.label ??
+          `${maxCalories} kcal以内`
+        }`
+      : null,
+    ...nutritionFilters.map(
+      (filterMode) =>
+        `PFC: ${
+          NUTRITION_FILTERS.find((item) => item.value === filterMode)?.label ??
+          filterMode
+        }`,
+    ),
+    inventoryOnly ? '在庫一致あり' : null,
+    sortMode !== 'time'
+      ? `並び: ${SORT_OPTIONS.find((item) => item.value === sortMode)?.label ?? sortMode}`
+      : null,
+  ].filter((label): label is string => Boolean(label))
 
   function toggleNutritionFilter(filterMode: NutritionFilterMode) {
     setNutritionFilters((current) =>
@@ -391,28 +433,54 @@ export function RecipesClient({ recipes, inventoryNames }: Props) {
         </div>
       </section>
 
+      {hasActiveFilters && (
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="shrink-0 text-muted">適用中</span>
+          {activeFilterLabels.map((label) => (
+            <span
+              key={label}
+              className="max-w-full truncate rounded border border-card-border bg-white px-2 py-1 text-muted"
+              title={label}
+            >
+              {label}
+            </span>
+          ))}
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
-        <span>
-          <span className="font-mono text-foreground">{filtered.length}</span> /{' '}
-          {recipes.length} 件
-        </span>
-        <span>
-          画像あり <span className="font-mono text-foreground">{imageCount}</span> 件
-        </span>
-        <span>
-          在庫一致{' '}
-          <span className="font-mono text-foreground">{inventoryHitCount}</span> 件
-        </span>
-        <span>
-          作れそう{' '}
-          <span className="font-mono text-foreground">{inventoryReadyCount}</span> 件
-        </span>
-        {hasNutritionFilters && (
+        <div className="flex flex-wrap items-center gap-2">
           <span>
-            栄養条件{' '}
-            <span className="font-mono text-foreground">{filtered.length}</span>{' '}
-            件
+            <span className="font-mono text-foreground">{filtered.length}</span> /{' '}
+            {recipes.length} 件
           </span>
+          <span>
+            画像あり <span className="font-mono text-foreground">{imageCount}</span> 件
+          </span>
+          <span>
+            在庫一致{' '}
+            <span className="font-mono text-foreground">{inventoryHitCount}</span> 件
+          </span>
+          <span>
+            作れそう{' '}
+            <span className="font-mono text-foreground">{inventoryReadyCount}</span> 件
+          </span>
+          {hasNutritionFilters && (
+            <span>
+              栄養条件{' '}
+              <span className="font-mono text-foreground">{filtered.length}</span>{' '}
+              件
+            </span>
+          )}
+        </div>
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="h-8 shrink-0 rounded border border-card-border bg-white px-3 text-xs font-bold text-muted hover:border-accent hover:text-accent"
+          >
+            条件をリセット
+          </button>
         )}
       </div>
 
