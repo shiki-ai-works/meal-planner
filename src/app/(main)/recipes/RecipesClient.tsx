@@ -233,6 +233,17 @@ export function RecipesClient({ recipes, inventoryNames }: Props) {
     )
   }
 
+  function clearFilters() {
+    setQuery('')
+    setMealType('all')
+    setCuisine('all')
+    setMaxMinutes(0)
+    setMaxCalories(0)
+    setNutritionFilters([])
+    setInventoryOnly(false)
+    setSortMode('time')
+  }
+
   useEffect(() => {
     if (!assignmentToast) return
     const id = setTimeout(() => setAssignmentToast(null), 4500)
@@ -406,9 +417,19 @@ export function RecipesClient({ recipes, inventoryNames }: Props) {
       </div>
 
       {filtered.length === 0 ? (
-        <p className="hud-border bg-card p-6 text-center text-sm text-muted">
-          条件に合うレシピがありません。
-        </p>
+        <div className="hud-border bg-card p-6 text-center">
+          <p className="text-sm font-bold">条件に合うレシピがありません</p>
+          <p className="mt-2 text-xs text-muted">
+            食事や時間の条件を少しゆるめると、候補が戻ってきます。
+          </p>
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="mt-4 rounded border border-card-border bg-white px-4 py-2 text-xs font-bold text-muted hover:border-accent hover:text-accent"
+          >
+            条件をリセット
+          </button>
+        </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {filtered.map((recipe) => {

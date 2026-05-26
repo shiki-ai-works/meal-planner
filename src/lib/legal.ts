@@ -1,5 +1,5 @@
 export const APP_NAME = '完全栄養ランダム献立達人'
-export const LEGAL_LAST_UPDATED = '2026-05-25'
+export const LEGAL_LAST_UPDATED = '2026-05-26'
 
 export const legalLinks = [
   { href: '/legal/terms', label: '利用規約' },

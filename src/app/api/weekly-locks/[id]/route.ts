@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
+import { isUserOnboarded } from '@/lib/onboarding'
 import { createClient } from '@/lib/supabase/server'
 import type { MealSlot } from '@/lib/week-plan'
-import type { DbLockedMeal, DbRecipe } from '@/types/database'
+import type { DbLockedMeal, DbRecipe, DbUser } from '@/types/database'
 
 interface PatchBody {
   recipeId?: string | null
@@ -11,6 +12,9 @@ interface PatchBody {
 }
 
 const MEAL_TYPES: MealSlot[] = ['breakfast', 'lunch', 'dinner']
+const WEEKLY_LOCKS_RESPONSE_HEADERS = {
+  'Cache-Control': 'no-store',
+}
 
 async function getAuthedClient() {
   const supabase = await createClient()
@@ -20,7 +24,39 @@ async function getAuthedClient() {
   } = await supabase.auth.getUser()
 
   if (error || !user) return { supabase, user: null }
-  return { supabase, user }
+
+  const { data: profile, error: profileError } = await supabase
+    .from('users')
+    .select('onboarding_completed_at')
+    .eq('id', user.id)
+    .maybeSingle()
+  const dbUser = (profile ?? null) as Pick<
+    DbUser,
+    'onboarding_completed_at'
+  > | null
+
+  if (profileError || !dbUser) {
+    return { supabase, user, onboardingError: 'missing-profile' as const }
+  }
+  if (!isUserOnboarded(dbUser)) {
+    return { supabase, user, onboardingError: 'incomplete' as const }
+  }
+
+  return { supabase, user, onboardingError: null }
+}
+
+function onboardingErrorResponse(error: 'missing-profile' | 'incomplete') {
+  if (error === 'missing-profile') {
+    return NextResponse.json(
+      { error: 'User profile not found' },
+      { status: 404, headers: WEEKLY_LOCKS_RESPONSE_HEADERS },
+    )
+  }
+
+  return NextResponse.json(
+    { error: '初回設定を完了してから毎週固定を編集してください' },
+    { status: 428, headers: WEEKLY_LOCKS_RESPONSE_HEADERS },
+  )
 }
 
 export async function PATCH(
@@ -32,7 +68,10 @@ export async function PATCH(
   try {
     body = await request.json()
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'Invalid JSON body' },
+      { status: 400, headers: WEEKLY_LOCKS_RESPONSE_HEADERS },
+    )
   }
 
   if (
@@ -43,19 +82,25 @@ export async function PATCH(
   ) {
     return NextResponse.json(
       { error: 'dayOfWeek must be between 0 and 6' },
-      { status: 400 },
+      { status: 400, headers: WEEKLY_LOCKS_RESPONSE_HEADERS },
     )
   }
   if (body.mealType !== undefined && !MEAL_TYPES.includes(body.mealType)) {
     return NextResponse.json(
       { error: 'mealType must be breakfast, lunch, or dinner' },
-      { status: 400 },
+      { status: 400, headers: WEEKLY_LOCKS_RESPONSE_HEADERS },
     )
   }
 
-  const { supabase, user } = await getAuthedClient()
+  const { supabase, user, onboardingError } = await getAuthedClient()
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401, headers: WEEKLY_LOCKS_RESPONSE_HEADERS },
+    )
+  }
+  if (onboardingError) {
+    return onboardingErrorResponse(onboardingError)
   }
 
   const currentRes = await supabase
@@ -69,11 +114,14 @@ export async function PATCH(
   if (currentRes.error) {
     return NextResponse.json(
       { error: `Failed to load weekly lock: ${currentRes.error.message}` },
-      { status: 500 },
+      { status: 500, headers: WEEKLY_LOCKS_RESPONSE_HEADERS },
     )
   }
   if (!currentLock) {
-    return NextResponse.json({ error: 'Weekly lock not found' }, { status: 404 })
+    return NextResponse.json(
+      { error: 'Weekly lock not found' },
+      { status: 404, headers: WEEKLY_LOCKS_RESPONSE_HEADERS },
+    )
   }
 
   const isEatingOut =
@@ -84,7 +132,7 @@ export async function PATCH(
   if (!isEatingOut && !recipeId) {
     return NextResponse.json(
       { error: 'recipeId is required unless isEatingOut is true' },
-      { status: 400 },
+      { status: 400, headers: WEEKLY_LOCKS_RESPONSE_HEADERS },
     )
   }
 
@@ -97,7 +145,10 @@ export async function PATCH(
 
     const recipe = recipeRes.data as Pick<DbRecipe, 'id'> | null
     if (recipeRes.error || !recipe) {
-      return NextResponse.json({ error: 'Recipe not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Recipe not found' },
+        { status: 404, headers: WEEKLY_LOCKS_RESPONSE_HEADERS },
+      )
     }
   }
 
@@ -119,19 +170,25 @@ export async function PATCH(
     if (updateRes.error.code === '23505') {
       return NextResponse.json(
         { error: 'その曜日と食事枠には、すでに毎週固定があります' },
-        { status: 409 },
+        { status: 409, headers: WEEKLY_LOCKS_RESPONSE_HEADERS },
       )
     }
     return NextResponse.json(
       { error: `Failed to update weekly lock: ${updateRes.error.message}` },
-      { status: 500 },
+      { status: 500, headers: WEEKLY_LOCKS_RESPONSE_HEADERS },
     )
   }
   if (!lock) {
-    return NextResponse.json({ error: 'Weekly lock not found' }, { status: 404 })
+    return NextResponse.json(
+      { error: 'Weekly lock not found' },
+      { status: 404, headers: WEEKLY_LOCKS_RESPONSE_HEADERS },
+    )
   }
 
-  return NextResponse.json({ lock })
+  return NextResponse.json(
+    { lock },
+    { headers: WEEKLY_LOCKS_RESPONSE_HEADERS },
+  )
 }
 
 export async function DELETE(
@@ -139,9 +196,15 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params
-  const { supabase, user } = await getAuthedClient()
+  const { supabase, user, onboardingError } = await getAuthedClient()
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401, headers: WEEKLY_LOCKS_RESPONSE_HEADERS },
+    )
+  }
+  if (onboardingError) {
+    return onboardingErrorResponse(onboardingError)
   }
 
   const deleteRes = await supabase
@@ -155,12 +218,18 @@ export async function DELETE(
   if (deleteRes.error) {
     return NextResponse.json(
       { error: `Failed to delete weekly lock: ${deleteRes.error.message}` },
-      { status: 500 },
+      { status: 500, headers: WEEKLY_LOCKS_RESPONSE_HEADERS },
     )
   }
   if (!deleteRes.data) {
-    return NextResponse.json({ error: 'Weekly lock not found' }, { status: 404 })
+    return NextResponse.json(
+      { error: 'Weekly lock not found' },
+      { status: 404, headers: WEEKLY_LOCKS_RESPONSE_HEADERS },
+    )
   }
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json(
+    { ok: true },
+    { headers: WEEKLY_LOCKS_RESPONSE_HEADERS },
+  )
 }

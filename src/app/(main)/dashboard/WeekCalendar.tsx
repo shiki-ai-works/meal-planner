@@ -27,6 +27,7 @@ type EatingOutKey =
   | 'is_eating_out_lunch'
   | 'is_eating_out_dinner'
 type LockedKey = 'breakfast_locked' | 'lunch_locked' | 'dinner_locked'
+type ReasonKey = 'breakfast_reason' | 'lunch_reason' | 'dinner_reason'
 
 const EATING_OUT_KEY: Record<MealSlot, EatingOutKey> = {
   breakfast: 'is_eating_out_breakfast',
@@ -37,6 +38,11 @@ const LOCKED_KEY: Record<MealSlot, LockedKey> = {
   breakfast: 'breakfast_locked',
   lunch: 'lunch_locked',
   dinner: 'dinner_locked',
+}
+const REASON_KEY: Record<MealSlot, ReasonKey> = {
+  breakfast: 'breakfast_reason',
+  lunch: 'lunch_reason',
+  dinner: 'dinner_reason',
 }
 
 interface Props {
@@ -54,6 +60,7 @@ function getSlotFields(day: DayMeals, slot: MealSlot) {
       recipeId: day.breakfast,
       locked: day.breakfast_locked,
       eatingOut: day.is_eating_out_breakfast,
+      reason: day.breakfast_reason ?? null,
     }
   }
   if (slot === 'lunch') {
@@ -61,12 +68,14 @@ function getSlotFields(day: DayMeals, slot: MealSlot) {
       recipeId: day.lunch,
       locked: day.lunch_locked,
       eatingOut: day.is_eating_out_lunch,
+      reason: day.lunch_reason ?? null,
     }
   }
   return {
     recipeId: day.dinner,
     locked: day.dinner_locked,
     eatingOut: day.is_eating_out_dinner,
+    reason: day.dinner_reason ?? null,
   }
 }
 
@@ -85,6 +94,7 @@ export function WeekCalendar({
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const canGenerate = recipes.length > 0
 
   useEffect(() => {
     if (!toast) return
@@ -101,6 +111,10 @@ export function WeekCalendar({
   const week: WeekPlan = plan?.plan ?? emptyWeek()
 
   async function handleGenerate() {
+    if (!canGenerate) {
+      setError('レシピがまだ登録されていないため、献立を生成できません')
+      return
+    }
     setError(null)
     startTransition(async () => {
       try {
@@ -134,6 +148,7 @@ export function WeekCalendar({
     const newWeek: WeekPlan = { ...plan.plan }
     const day: DayMeals = { ...(newWeek[dayIdx] ?? emptyDay()) }
     day[key] = !day[key]
+    day[REASON_KEY[slot]] = day[key] ? '外食枠に変更' : '手作り枠に戻しました'
     newWeek[dayIdx] = day
 
     const newPlan: DbMealPlan = { ...plan, plan: newWeek }
@@ -169,6 +184,7 @@ export function WeekCalendar({
     const newWeek: WeekPlan = { ...plan.plan }
     const day: DayMeals = { ...(newWeek[dayIdx] ?? emptyDay()) }
     day[key] = !day[key]
+    day[REASON_KEY[slot]] = day[key] ? 'この枠を固定中' : null
     newWeek[dayIdx] = day
 
     const newPlan: DbMealPlan = { ...plan, plan: newWeek }
@@ -210,7 +226,7 @@ export function WeekCalendar({
         <button
           type="button"
           onClick={handleGenerate}
-          disabled={isPending}
+          disabled={isPending || !canGenerate}
           className="bg-accent text-white text-sm font-bold px-4 py-2 rounded disabled:opacity-50"
         >
           {isPending ? '生成中…' : '献立を生成'}
@@ -218,15 +234,44 @@ export function WeekCalendar({
       </div>
 
       {error && (
-        <div className="hud-border bg-card p-3 text-sm text-danger">
-          {error}
+        <div className="hud-border bg-card p-3" role="alert">
+          <p className="text-sm font-bold text-danger">献立を生成できませんでした</p>
+          <p className="mt-1 text-xs text-muted">{error}</p>
+          <button
+            type="button"
+            onClick={handleGenerate}
+            disabled={isPending || !canGenerate}
+            className="mt-3 rounded border border-card-border bg-white px-3 py-2 text-xs font-bold text-muted hover:border-accent hover:text-accent disabled:opacity-50"
+          >
+            もう一度試す
+          </button>
+        </div>
+      )}
+
+      {!plan && isPending && (
+        <div className="hud-border bg-card p-5 text-center" role="status">
+          <p className="text-sm font-bold">献立を組み立てています</p>
+          <p className="mt-2 text-xs text-muted">
+            固定枠、苦手食材、栄養バランスを見ながら今週分を選んでいます。
+          </p>
         </div>
       )}
 
       {!plan && !isPending && (
-        <p className="text-sm text-muted text-center">
-          まだ今週の献立がありません。「献立を生成」を押してください。
-        </p>
+        <div className="hud-border bg-card p-5 text-center">
+          <p className="text-sm font-bold">まだ今週の献立がありません</p>
+          <p className="mt-2 text-xs text-muted">
+            最初の 1 週間を作ると、買い物リストと栄養グラフも動き始めます。
+          </p>
+          <button
+            type="button"
+            onClick={handleGenerate}
+            disabled={!canGenerate}
+            className="mt-4 rounded bg-accent px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
+          >
+            献立を生成
+          </button>
+        </div>
       )}
 
       {plan && (
@@ -261,6 +306,7 @@ export function WeekCalendar({
                       recipe={recipe}
                       isLocked={f.locked}
                       isEatingOut={f.eatingOut}
+                      reason={f.reason}
                       onToggleEatingOut={() => toggleEatingOut(dayIdx, slot)}
                       onToggleLocked={() => toggleLocked(dayIdx, slot)}
                     />

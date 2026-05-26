@@ -108,9 +108,12 @@ export function ShoppingClient({ weekStartDate, grouped }: Props) {
 
   if (total === 0) {
     return (
-      <p className="text-sm text-muted text-center py-6">
-        買い物リストは空です。献立を生成してください。
-      </p>
+      <div className="hud-border bg-card p-5 text-center">
+        <p className="text-sm font-bold">買い足す食材はありません</p>
+        <p className="mt-2 text-xs text-muted">
+          常備品や在庫で足りているか、外食枠だけの週になっています。
+        </p>
+      </div>
     )
   }
 
@@ -154,12 +157,12 @@ export function ShoppingClient({ weekStartDate, grouped }: Props) {
                   it.amount > 0 ? Math.min(100, (it.consumed / it.amount) * 100) : 0
                 return (
                   <li key={k} className="flex flex-col gap-1">
-                    <label className="flex items-center gap-2 cursor-pointer">
+                    <label className="flex min-h-12 cursor-pointer items-center gap-3 rounded border border-transparent px-1 py-1 hover:border-card-border">
                       <input
                         type="checkbox"
                         checked={inB}
                         onChange={() => toggleBasket(k)}
-                        className="accent-accent"
+                        className="h-5 w-5 shrink-0 accent-accent"
                         aria-label="カゴに入れる"
                       />
                       <span

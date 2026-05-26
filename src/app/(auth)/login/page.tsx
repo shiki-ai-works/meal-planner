@@ -18,10 +18,18 @@ export default function LoginPage() {
     setLoading(true)
 
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error } = await supabase.auth
+      .signInWithPassword({ email, password })
+      .catch(() => ({
+        error: new Error('通信に失敗しました。接続を確認してください。'),
+      }))
 
     if (error) {
-      setError('メールアドレスまたはパスワードが正しくありません')
+      setError(
+        error.message.includes('通信に失敗')
+          ? error.message
+          : 'メールアドレスまたはパスワードが正しくありません',
+      )
       setLoading(false)
       return
     }

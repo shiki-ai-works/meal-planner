@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
+import { isUserOnboarded } from '@/lib/onboarding'
 import { createClient } from '@/lib/supabase/server'
 import { assignRecipeToWeek, emptyWeek, type MealSlot } from '@/lib/week-plan'
-import type { DbMealPlan, DbRecipe, WeekPlan } from '@/types/database'
+import type { DbMealPlan, DbRecipe, DbUser, WeekPlan } from '@/types/database'
 
 type LockScope = 'none' | 'week' | 'weekly'
 
@@ -17,22 +18,31 @@ interface RequestBody {
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
 const MEAL_TYPES: MealSlot[] = ['breakfast', 'lunch', 'dinner']
 const LOCK_SCOPES: LockScope[] = ['none', 'week', 'weekly']
+const ASSIGN_RECIPE_RESPONSE_HEADERS = {
+  'Cache-Control': 'no-store',
+}
 
 export async function POST(request: Request) {
   let body: RequestBody
   try {
     body = await request.json()
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'Invalid JSON body' },
+      { status: 400, headers: ASSIGN_RECIPE_RESPONSE_HEADERS },
+    )
   }
 
   if (!body.recipeId) {
-    return NextResponse.json({ error: 'recipeId is required' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'recipeId is required' },
+      { status: 400, headers: ASSIGN_RECIPE_RESPONSE_HEADERS },
+    )
   }
   if (!body.weekStartDate || !ISO_DATE.test(body.weekStartDate)) {
     return NextResponse.json(
       { error: 'weekStartDate (YYYY-MM-DD) is required' },
-      { status: 400 },
+      { status: 400, headers: ASSIGN_RECIPE_RESPONSE_HEADERS },
     )
   }
   if (
@@ -42,19 +52,19 @@ export async function POST(request: Request) {
   ) {
     return NextResponse.json(
       { error: 'dayOfWeek must be between 0 and 6' },
-      { status: 400 },
+      { status: 400, headers: ASSIGN_RECIPE_RESPONSE_HEADERS },
     )
   }
   if (!body.mealType || !MEAL_TYPES.includes(body.mealType)) {
     return NextResponse.json(
       { error: 'mealType must be breakfast, lunch, or dinner' },
-      { status: 400 },
+      { status: 400, headers: ASSIGN_RECIPE_RESPONSE_HEADERS },
     )
   }
   if (body.lockScope && !LOCK_SCOPES.includes(body.lockScope)) {
     return NextResponse.json(
       { error: 'lockScope must be none, week, or weekly' },
-      { status: 400 },
+      { status: 400, headers: ASSIGN_RECIPE_RESPONSE_HEADERS },
     )
   }
 
@@ -67,18 +77,44 @@ export async function POST(request: Request) {
     error: authError,
   } = await supabase.auth.getUser()
   if (authError || !user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401, headers: ASSIGN_RECIPE_RESPONSE_HEADERS },
+    )
   }
 
-  const recipeRes = await supabase
-    .from('recipes')
-    .select('*')
-    .eq('id', body.recipeId)
-    .maybeSingle()
+  const [profileRes, recipeRes] = await Promise.all([
+    supabase
+      .from('users')
+      .select('onboarding_completed_at')
+      .eq('id', user.id)
+      .maybeSingle(),
+    supabase.from('recipes').select('*').eq('id', body.recipeId).maybeSingle(),
+  ])
+
+  const profile = (profileRes.data ?? null) as Pick<
+    DbUser,
+    'onboarding_completed_at'
+  > | null
+  if (profileRes.error || !profile) {
+    return NextResponse.json(
+      { error: 'User profile not found' },
+      { status: 404, headers: ASSIGN_RECIPE_RESPONSE_HEADERS },
+    )
+  }
+  if (!isUserOnboarded(profile)) {
+    return NextResponse.json(
+      { error: '初回設定を完了してからレシピを割り当ててください' },
+      { status: 428, headers: ASSIGN_RECIPE_RESPONSE_HEADERS },
+    )
+  }
 
   const recipe = recipeRes.data as DbRecipe | null
   if (recipeRes.error || !recipe) {
-    return NextResponse.json({ error: 'Recipe not found' }, { status: 404 })
+    return NextResponse.json(
+      { error: 'Recipe not found' },
+      { status: 404, headers: ASSIGN_RECIPE_RESPONSE_HEADERS },
+    )
   }
 
   const planRes = await supabase
@@ -94,7 +130,7 @@ export async function POST(request: Request) {
   if (planRes.error) {
     return NextResponse.json(
       { error: `Failed to load plan: ${planRes.error.message}` },
-      { status: 500 },
+      { status: 500, headers: ASSIGN_RECIPE_RESPONSE_HEADERS },
     )
   }
 
@@ -128,7 +164,7 @@ export async function POST(request: Request) {
   if (saveRes.error || !saveRes.data) {
     return NextResponse.json(
       { error: `Failed to save plan: ${saveRes.error?.message ?? 'unknown'}` },
-      { status: 500 },
+      { status: 500, headers: ASSIGN_RECIPE_RESPONSE_HEADERS },
     )
   }
 
@@ -150,7 +186,7 @@ export async function POST(request: Request) {
         {
           error: `今週分は保存しましたが、毎週固定の保存に失敗しました: ${lockRes.error.message}`,
         },
-        { status: 500 },
+        { status: 500, headers: ASSIGN_RECIPE_RESPONSE_HEADERS },
       )
     }
   }
@@ -163,6 +199,9 @@ export async function POST(request: Request) {
       mealType: body.mealType,
       lockScope,
     },
-    { status: currentPlan ? 200 : 201 },
+    {
+      status: currentPlan ? 200 : 201,
+      headers: ASSIGN_RECIPE_RESPONSE_HEADERS,
+    },
   )
 }

@@ -8,6 +8,7 @@ import type {
   DbUser,
 } from '@/types/database'
 import { SettingsClient } from './SettingsClient'
+import { DataControlsClient } from './DataControlsClient'
 import { WeeklyLocksClient } from './WeeklyLocksClient'
 
 export default async function SettingsPage() {
@@ -49,6 +50,10 @@ export default async function SettingsPage() {
 
       <div className="mt-6">
         <WeeklyLocksClient initialLocks={locks} recipes={recipes} />
+      </div>
+
+      <div className="mt-6">
+        <DataControlsClient />
       </div>
 
       <div className="mt-6">

@@ -7,8 +7,9 @@
 
 1. `AGENTS.md`
 2. `NEXT_CHAT_HANDOFF.md`
-3. `README.md`
-4. `ROADMAP.md`
+3. [`NEXT_IMPLEMENTATION_HANDOFF.md`](NEXT_IMPLEMENTATION_HANDOFF.md)
+4. `README.md`
+5. `ROADMAP.md`
 
 ## 現在地
 
@@ -79,14 +80,27 @@ npm.cmd run release:check
 `npm.cmd run check` の中身:
 
 - `setup:doctor:test`
+- `env:safety:test`
+- `env:safety`
 - `recipe-images:workflow:test`
 - `e2e:public:test`
+- `e2e:auth:test`
+- `private-api:cache:test`
+- `private-api:cache`
+- `user-data:delete-guard:test`
+- `user-data:delete-guard`
+- `onboarding:schema:test`
+- `onboarding:schema`
+- `legal:disclosures:test`
+- `legal:disclosures`
 - `portfolio:check:test`
 - `portfolio:check`
 - `docs:links:test`
 - `docs:links`
 - `docs:mojibake:test`
 - `docs:mojibake`
+- `docs:migrations:test`
+- `docs:migrations`
 - `docs:progress-index:test`
 - `docs:progress-index`
 - `recipe-images:workflow`
@@ -104,7 +118,7 @@ npm.cmd run release:check
 
 `recipe-images:sources-check:strict` は、その warning も error として扱う最終確認用。現在は pass する。
 
-公開前のまとめ検査として `npm.cmd run release:check` も追加済み。通常検査、strict 画像出典メモ検査、公開導線 E2E を順番に実行する。通常検査には `portfolio:check:test` / `portfolio:check`、`docs:links:test` / `docs:links`、`docs:mojibake:test` / `docs:mojibake`、`docs:progress-index:test` / `docs:progress-index` が含まれ、README と `PORTFOLIO.md` のスクリーンショット参照、主要 Markdown のローカルファイルリンク、日本語文書の文字化け断片、最新 progress note と ROADMAP の同期を確認する。strict は warning も失敗扱いにする確認で、placeholder attribution が戻った時に公開前で止める。`check` の build 結果を再利用し、E2E 前の重複 build は避ける。`e2e:public:run` はローカル検査時に `.next/BUILD_ID` を確認し、build が無ければ案内して止まる。`e2e:public:test` はこの guard と `E2E_BASE_URL` 分岐を自己検査する。`supabase/recipe-images.sources.json` がある作業環境向け。
+公開前のまとめ検査として `npm.cmd run release:check` も追加済み。通常検査、strict 画像出典メモ検査、公開導線 E2E を順番に実行する。通常検査には `env:safety:test` / `env:safety`、`e2e:auth:test`、`private-api:cache:test` / `private-api:cache`、`user-data:delete-guard:test` / `user-data:delete-guard`、`onboarding:schema:test` / `onboarding:schema`、`legal:disclosures:test` / `legal:disclosures`、`portfolio:check:test` / `portfolio:check`、`docs:links:test` / `docs:links`、`docs:mojibake:test` / `docs:mojibake`、`docs:migrations:test` / `docs:migrations`、`docs:progress-index:test` / `docs:progress-index` が含まれ、`.env.example` と deploy script の鍵まわり、認証付き E2E script の安全ガード、private API の no-store header、公開導線 E2E と認証付き E2E の no-store 確認、ユーザーデータ削除 API の確認 header、初回設定の選択肢と database 制約、生成 API と signup / setup / main layout の初回設定 route、プライバシーと利用規約の主要説明、README と `PORTFOLIO.md` のスクリーンショット参照、主要 Markdown のローカルファイルリンク、日本語文書の文字化け断片、migration 適用リスト、最新 progress note と ROADMAP の同期を確認する。env は環境変数、つまりアプリ外から渡す設定値。route は画面や API へ向かう道筋。migration は database 変更を順番に適用する SQL ファイル。strict は warning も失敗扱いにする確認で、placeholder attribution が戻った時に公開前で止める。`check` の build 結果を再利用し、E2E 前の重複 build は避ける。`e2e:public:run` はローカル検査時に `.next/BUILD_ID` を確認し、build が無ければ案内して止まる。`e2e:public:test` はこの guard と `E2E_BASE_URL` 分岐を自己検査する。`e2e:auth:test` は credential 不足、`E2E_AUTH_MODE` の誤り、local build 不足を外部 Supabase に触る前に自己検査する。`supabase/recipe-images.sources.json` がある作業環境向け。
 
 PROGRESS_106 で `portfolio:check:test` を追加し、missing image と拡張子 / 中身 mismatch で失敗することも自己検査するようにした。
 
@@ -114,7 +128,23 @@ PROGRESS_108 で `docs:mojibake` / `docs:mojibake:test` を追加し、主要 Ma
 
 PROGRESS_109 で `docs:progress-index` / `docs:progress-index:test` を追加し、最新 `progress/PROGRESS_NN.md` が ROADMAP の最終更新と関連ドキュメントに反映されているかを通常検査で拾えるようにした。
 
-PROGRESS_104 で公開導線 E2E に `/demo?section=shopping` と `/demo?recipe=demo-natto-rice` を追加した。README で案内しているデモの深いリンクも、公開前検査で 200 と主要文言を確認する。
+PROGRESS_110 で `e2e:auth:test` に local build guard の自己検査を追加し、`.next/BUILD_ID` が無い状態では Supabase に触る前に案内つきで止まることを確認できるようにした。
+
+PROGRESS_111 で `/api/user-data/delete` に確認 header 必須ガードを追加し、設定画面の削除 UI から同じ header を送るようにした。削除 API は破壊的なので、UI の確認テキストだけでなく server 側でも意図を確認する。PROGRESS_123 で UI の確認テキスト `削除` は残しつつ、通信 header の値は ASCII 安全な `delete-confirmed` に変更した。
+
+PROGRESS_112 で `user-data:delete-guard` / `user-data:delete-guard:test` を追加し、削除 API の確認 header guard と設定画面の header 送信が通常検査で落ちないようにした。
+
+PROGRESS_113 で `onboarding:schema` / `onboarding:schema:test` を追加し、初回設定の選択肢、`DbUser` 型、`008_user_onboarding.sql` の CHECK 制約がずれた時に通常検査で拾えるようにした。PROGRESS_117 で同じ検査に `/api/generate-plan` の初回設定完了 guard も追加した。PROGRESS_118 で signup 後 `/setup`、`(main)/layout` の未完了 redirect、`/setup` の未完了 / 完了分岐も同じ検査に含めた。
+
+PROGRESS_114 で `legal:disclosures` / `legal:disclosures:test` を追加し、プライバシーポリシーの JSON export / 削除説明、利用規約の医療・アレルギー注意、legal 最終更新日を通常検査で拾えるようにした。
+
+PROGRESS_115 で `env:safety` / `env:safety:test` を追加し、`.env.example` の仮値、`.gitignore` の env 除外、本番 deploy script が secret key / service_role key を Vercel production env へ送らないことを通常検査で拾えるようにした。
+
+PROGRESS_116 で `docs:migrations` / `docs:migrations:test` を追加し、`supabase/migrations` の実ファイルと README / DEPLOYMENT の migration 適用リストがずれた時に通常検査で拾えるようにした。
+
+PROGRESS_117 で `/api/generate-plan` が `onboarding_completed_at` を読み、未完了ユーザーには `428` と「初回設定を完了してから献立を生成してください」を返すようにした。初回設定を飛ばした API 直叩きで献立だけ作られないようにするため。
+
+PROGRESS_104 で公開導線 E2E に `/demo?section=shopping` と `/demo?recipe=demo-natto-rice` を追加した。README で案内しているデモの深いリンクも、公開前検査で 200 と主要文言を確認する。PROGRESS_119 で `/login` も公開導線 E2E に追加し、fixture 自己検査が `ok /login` を確認するようにした。PROGRESS_120 で未ログイン `/dashboard` が `/login` へ redirect されることも公開導線 E2E に追加した。PROGRESS_121 で未ログイン `/api/generate-plan` が `401 Unauthorized` で止まることも公開導線 E2E に追加した。PROGRESS_122 で未ログイン `/api/user-data/export` の `401 Unauthorized` も追加した。PROGRESS_123 で確認 header 付きの未ログイン `/api/user-data/delete` も `401 Unauthorized` で止まることを公開導線 E2E に追加した。PROGRESS_124 で header なし `/api/user-data/delete` が `400` で止まることも公開導線 E2E に追加した。PROGRESS_125 で user-data API の `400` / `401` に `Cache-Control: no-store` が付くことも公開導線 E2E に追加した。PROGRESS_126 で `/api/generate-plan` の `401` も no-store 確認対象に追加した。PROGRESS_127 で `/api/assign-recipe` と `/api/weekly-locks/[id]` の PATCH / DELETE も未ログイン `401` と no-store 確認対象に追加し、初回設定未完了時の mutation API guard も `onboarding:schema` に含めた。PROGRESS_128 で公開導線 E2E の API ログに HTTP method を出し、weekly-locks の PATCH / DELETE が別々に読めるようにした。PROGRESS_129 で `private-api:cache` / `private-api:cache:test` を追加し、private API の no-store header と公開導線 E2E の header 確認が外れた時に通常検査で拾えるようにした。PROGRESS_130 で `e2e:public:test` に private API の no-store header 欠落 negative case を追加し、runtime-style self-test でも header check の効き目を確認するようにした。PROGRESS_131 で `private-api:cache` に認証付き E2E の assign-recipe / user-data export no-store 確認も含め、auth E2E 側の header check が外れた時も通常検査で拾えるようにした。PROGRESS_132 で認証付き E2E の成功系 `POST /api/generate-plan` も no-store 確認対象に追加し、`private-api:cache` の auth E2E guard に含めた。
 
 PROGRESS_102 では `release:check` が pass し、dev server 上の `http://localhost:3000/setup` も Browser で表示確認済み。title は `完全栄養ランダム献立達人`、`Supabase` と `画像クレジット` の文言も取得できた。
 
@@ -183,6 +213,8 @@ PROGRESS_102 では `release:check` が pass し、dev server 上の `http://loc
 
 ## 次にやるなら
 
+実用化の大きな次タスクは、[`NEXT_IMPLEMENTATION_HANDOFF.md`](NEXT_IMPLEMENTATION_HANDOFF.md) にまとめた。内容は「本番データでの実運用確認」「認証後 E2E」「初回ユーザー導線」「レシピ品質と量」「献立生成の納得感」「エラー・空状態・読み込み状態」「スマホでの実使用感」「データ削除・エクスポート」の 8 項目。
+
 1. タイトルを画像素材に置き換える時は、`app-title-shadow` を削るか、画像用の別スタイルへ移行する。
 2. 公開前は `npm.cmd run release:check` を通す。
 3. 画像出典を追加・変更した場合は、`recipe-images:sources-check:strict` まで通す。
@@ -195,6 +227,15 @@ PROGRESS_102 では `release:check` が pass し、dev server 上の `http://loc
 
 - `/legal`、`/legal/terms`、`/legal/privacy`、`/legal/attributions` を追加済み。
 - signup に利用規約とプライバシーポリシー確認 checkbox を追加済み。
+- `/login` と `/signup` は公開導線 E2E で確認済み。
+- 未ログイン `/dashboard` が `/login` へ redirect されることも公開導線 E2E で確認済み。
+- 未ログイン `/api/generate-plan` が `401 Unauthorized` で止まることも公開導線 E2E で確認済み。
+- 未ログイン `/api/assign-recipe` が `401 Unauthorized` で止まることも公開導線 E2E で確認済み。
+- 未ログイン `/api/weekly-locks/[id]` の PATCH / DELETE が `401 Unauthorized` で止まることも公開導線 E2E で確認済み。
+- 未ログイン `/api/user-data/export` が `401 Unauthorized` で止まることも公開導線 E2E で確認済み。
+- 未ログイン `/api/user-data/delete` が確認 header 付きでも `401 Unauthorized` で止まることも公開導線 E2E で確認済み。
+- `/api/user-data/delete` は確認 header が無い場合 `400` で止まることも公開導線 E2E で確認済み。
+- generate-plan、assign-recipe、weekly-locks、user-data 系 API の `400` / `401` に `Cache-Control: no-store` が付くことも公開導線 E2E で確認済み。
 - `npm run e2e:public` で build 付きの公開前主要導線を確認可能。
 - `npm run e2e:public:run` で build 済み状態の公開前主要導線だけを確認可能。
 - `npm run e2e:public:test` で E2E script の build guard を軽く自己検査可能。

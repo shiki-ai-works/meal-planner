@@ -3,7 +3,7 @@
 > プロジェクト全体の中長期計画。**「次に何をやるか」と「将来どこに向かうか」**を 1 ファイルで把握。
 > セッションごとの細かい進捗は `progress/PROGRESS_NN.md`、メモリ運用は Claude 側の `project_meal_planner.md` を参照。
 
-**最終更新:** 2026-05-26 (PROGRESS_109 時点。progress index check 追加まで反映)
+**最終更新:** 2026-05-26 (PROGRESS_132 時点。auth generate-plan no-store E2E coverage まで反映)
 
 ---
 
@@ -462,6 +462,98 @@ Phase 4 (将来構想)     💭 アイデア
   - `docs:progress-index` を追加し、最新 `progress/PROGRESS_NN.md` が ROADMAP の最終更新と関連ドキュメントに反映されているか確認
   - `docs:progress-index:test` で latest note / missing roadmap link / heading mismatch を自己検査
   - `npm run check` に組み込み、進捗メモだけ増えて地図が古くなる事故を拾えるようにした
+- ✅ 認証付き E2E build guard 自己検査（PROGRESS_110）
+  - `e2e:auth:test` に local build 不足ケースを追加
+  - 一時フォルダから実行し、`.next/BUILD_ID` が無い時は Supabase に触る前に案内つきで止まることを確認
+  - README / DEPLOYMENT / handoff に、認証付き E2E の安全ガード説明を追記
+- ✅ user data delete confirmation header 追加（PROGRESS_111）
+  - `/api/user-data/delete` が `x-meal-planner-delete-confirmation: delete-confirmed` を要求するようにした
+  - 設定画面の削除 UI は、確認テキスト一致後に同じ header を送る
+  - 破壊的な DELETE を UI と server の二段で確認する形にした
+- ✅ user data delete guard check 追加（PROGRESS_112）
+  - `user-data:delete-guard` を追加し、削除 API の確認 header guard と UI からの header 送信を静的に確認
+  - `user-data:delete-guard:test` で valid / guard ordering / UI header missing を自己検査
+  - `npm run check` に組み込み、破壊的操作の防護が外れた時に通常検査で止まるようにした
+- ✅ onboarding schema check 追加（PROGRESS_113）
+  - `onboarding:schema` を追加し、初回設定の選択肢と `008_user_onboarding.sql` の CHECK 制約を照合
+  - `DbUser` の `self_cook_frequency` / `planning_goal` / `onboarding_completed_at` も確認
+  - `onboarding:schema:test` を `npm run check` に組み込み、UI と DB の受け取れる値のずれを通常検査で拾えるようにした
+- ✅ legal disclosure check 追加（PROGRESS_114）
+  - `legal:disclosures` を追加し、プライバシーポリシーの JSON export / 削除説明と Supabase 利用説明を確認
+  - 利用規約の医療代替ではない説明、アレルギー注意、禁止事項も確認
+  - `LEGAL_LAST_UPDATED` を 2026-05-26 に更新し、`npm run check` に自己検査ごと組み込んだ
+- ✅ env safety check 追加（PROGRESS_115）
+  - `env:safety` を追加し、`.env.example` が仮値のままか、`.env*` が Git から除外されているか確認
+  - 本番 deploy script が secret key / service_role key を Vercel production env へ送らないことを確認
+  - `env:safety:test` を `npm run check` に組み込み、鍵まわりの事故を公開前に拾えるようにした
+- ✅ migration docs check 追加（PROGRESS_116）
+  - `docs:migrations` を追加し、`supabase/migrations` の実ファイルが README / DEPLOYMENT に載っているか確認
+  - migration の番号順と、欠番 `003` の説明が残っているか確認
+  - `docs:migrations:test` を `npm run check` に組み込み、本番 SQL 適用手順のずれを通常検査で拾えるようにした
+- ✅ generate-plan onboarding guard 追加（PROGRESS_117）
+  - `/api/generate-plan` が `onboarding_completed_at` を読み、初回設定未完了なら `428` で停止するようにした
+  - 初回設定を飛ばして API を直接叩いても、設定前の献立だけが作られないようにした
+  - `onboarding:schema:test` に guard 欠落ケースを追加し、通常検査で API 側の裏口を拾えるようにした
+- ✅ onboarding route guard check 追加（PROGRESS_118）
+  - signup 後に `/setup` へ送ることを `onboarding:schema` で静的確認
+  - `(main)/layout` が初回設定未完了ユーザーを `/setup` へ戻すことを確認
+  - `/setup` が未完了ユーザーに `OnboardingClient` を出し、完了ユーザーを `/dashboard` へ戻すことを確認
+- ✅ login public E2E coverage 追加（PROGRESS_119）
+  - 公開導線 E2E に `/login` を追加し、設定済み環境でログイン画面の主要文言を確認
+  - `e2e:public:test` の fixture に `/login` を追加
+  - 自己検査で `ok /login` を確認し、対象 route が検査から外れた時に拾えるようにした
+- ✅ protected redirect public E2E coverage 追加（PROGRESS_120）
+  - 公開導線 E2E に未ログイン `/dashboard` -> `/login` redirect 確認を追加
+  - redirect status と `location` header を検査し、保護ページが公開側へ漏れないことを確認
+  - `e2e:public:test` の fixture でも `ok /dashboard -> /login` を確認するようにした
+- ✅ generate-plan unauth public E2E coverage 追加（PROGRESS_121）
+  - 公開導線 E2E に未ログイン `/api/generate-plan` の `401 Unauthorized` 確認を追加
+  - 有効な JSON body を POST し、入力 validation より先に認証 guard を確認
+  - `e2e:public:test` の fixture でも `ok /api/generate-plan 401` を確認するようにした
+- ✅ user-data export unauth public E2E coverage 追加（PROGRESS_122）
+  - 公開導線 E2E に未ログイン `/api/user-data/export` の `401 Unauthorized` 確認を追加
+  - 個人データ export API がログインなしで開かないことを起動後検査で確認
+  - `e2e:public:test` の fixture でも `ok /api/user-data/export 401` を確認するようにした
+- ✅ ASCII-safe delete header and delete unauth E2E coverage 追加（PROGRESS_123）
+  - 削除確認の UI text は `削除` のまま、通信 header 値を `delete-confirmed` に変更
+  - Node / browser の fetch で非 ASCII header 値が落ちる問題を回避
+  - 確認 header 付きの未ログイン `/api/user-data/delete` が `401 Unauthorized` で止まることを公開導線 E2E に追加
+- ✅ delete missing-header public E2E coverage 追加（PROGRESS_124）
+  - 公開導線 E2E に `/api/user-data/delete` の確認 header 不足 `400` 確認を追加
+  - header なし DELETE が認証処理へ進む前に止まることを起動後検査で確認
+  - `e2e:public:test` の fixture でも `ok /api/user-data/delete 400` を確認するようにした
+- ✅ user-data API no-store E2E coverage 追加（PROGRESS_125）
+  - `/api/user-data/export` の未ログイン `401` に `Cache-Control: no-store` を追加
+  - `/api/user-data/delete` の未ログイン `401` と削除失敗 `500` にも `Cache-Control: no-store` を追加
+  - 公開導線 E2E で user-data API の `400` / `401` が no-store を返すことを確認
+- ✅ generate-plan no-store coverage 追加（PROGRESS_126）
+  - `/api/generate-plan` の全 JSON 応答に `Cache-Control: no-store` を追加
+  - 成功時の献立データ、未ログイン `401`、初回設定未完了 `428`、失敗系 `400` / `404` / `500` を保存禁止に統一
+  - 公開導線 E2E で未ログイン `/api/generate-plan` の `401` も no-store を返すことを確認
+- ✅ private mutation API coverage 追加（PROGRESS_127）
+  - `/api/assign-recipe` の全 JSON 応答に `Cache-Control: no-store` を追加し、初回設定未完了なら `428` で停止
+  - `/api/weekly-locks/[id]` の PATCH / DELETE にも no-store と初回設定 guard を追加
+  - 未ログイン assign / weekly-locks PATCH / DELETE が `401 Unauthorized` と no-store を返すことを公開導線 E2E に追加
+- ✅ method-specific public E2E API logging 追加（PROGRESS_128）
+  - 公開導線 E2E の API 結果ログに HTTP method を表示するようにした
+  - weekly-locks の PATCH / DELETE が `ok PATCH ...` と `ok DELETE ...` で別々に読めるようにした
+  - fixture 自己検査でも PATCH / DELETE それぞれの出力を確認するようにした
+- ✅ private API cache guard check 追加（PROGRESS_129）
+  - `private-api:cache` を追加し、private API の全 `NextResponse.json` が no-store header を使うことを静的確認
+  - `private-api:cache:test` で valid / missing route header / missing E2E coverage / cacheable user-data header を自己検査
+  - `npm run check` に組み込み、保存禁止 header と公開 E2E header check の退化を通常検査で拾えるようにした
+- ✅ private API no-store negative E2E self-test 追加（PROGRESS_130）
+  - `e2e:public:test` に、fixture が private API の `cache-control` を返さない場合の失敗ケースを追加
+  - `/api/generate-plan returned cache-control: <missing>, expected no-store` まで検査し、公開 E2E の header check が実際に効くことを確認
+  - static guard と runtime-style self-test の両方で private API no-store の退化を拾えるようにした
+- ✅ auth E2E no-store guard 追加（PROGRESS_131）
+  - `private-api:cache` が認証付き E2E の `assign-recipe` / `user-data export` no-store 確認も見るようにした
+  - `private-api:cache:test` に、auth E2E から user-data export の no-store 確認が消えた時の失敗ケースを追加
+  - 公開導線 E2E と認証付き E2E の両方で、保存禁止 header の確認が通常検査から外れにくくなった
+- ✅ auth generate-plan no-store E2E coverage 追加（PROGRESS_132）
+  - 認証付き E2E の成功系 `POST /api/generate-plan` でも `Cache-Control: no-store` を確認
+  - `private-api:cache` が auth E2E の generate-plan no-store 確認も見るようにした
+  - `private-api:cache:test` に、auth E2E から generate-plan の no-store 確認が消えた時の失敗ケースを追加
 
 ### 進行中 🚧
 - 🚧 **タイトル仮デザイン**
@@ -542,7 +634,7 @@ Phase 4 (将来構想)     💭 アイデア
 ## いま向かっている方向（"Now / Next / Later"）
 
 ### Now（このイテレーション）
-- 公開前検査は strict 出典チェック、demo deep link、portfolio asset check、Markdown link / mojibake / progress index check 込みで pass。次は UI の実操作確認とタイトル仮デザインの整理を進める
+- 公開前検査は strict 出典チェック、demo deep link、認証付き E2E script guard、portfolio asset check、Markdown link / mojibake / progress index check 込みで pass。次は UI の実操作確認とタイトル仮デザインの整理を進める
 - 仮タイトル「完全栄養ランダム献立達人」の状態を維持しつつ、最終ロゴ化の方針を決める
 - 実データで `/recipes`、レシピ詳細、設定画面の固定導線を追加確認する
 - 変更後は `npm run check` / `git diff --check` / ブラウザ確認
@@ -592,6 +684,29 @@ npm run dev
 
 ## 関連ドキュメント
 
+- [`progress/PROGRESS_132.md`](progress/PROGRESS_132.md) — auth generate-plan no-store E2E coverage
+- [`progress/PROGRESS_131.md`](progress/PROGRESS_131.md) — auth E2E no-store guard
+- [`progress/PROGRESS_130.md`](progress/PROGRESS_130.md) — private API no-store negative E2E self-test
+- [`progress/PROGRESS_129.md`](progress/PROGRESS_129.md) — private API cache guard check
+- [`progress/PROGRESS_128.md`](progress/PROGRESS_128.md) — method-specific public E2E API logging
+- [`progress/PROGRESS_127.md`](progress/PROGRESS_127.md) — private mutation API coverage
+- [`progress/PROGRESS_126.md`](progress/PROGRESS_126.md) — generate-plan no-store coverage
+- [`progress/PROGRESS_125.md`](progress/PROGRESS_125.md) — user-data API no-store E2E coverage
+- [`progress/PROGRESS_124.md`](progress/PROGRESS_124.md) — delete missing-header public E2E coverage
+- [`progress/PROGRESS_123.md`](progress/PROGRESS_123.md) — ASCII-safe delete header and delete unauth E2E coverage
+- [`progress/PROGRESS_122.md`](progress/PROGRESS_122.md) — user-data export unauth public E2E coverage
+- [`progress/PROGRESS_121.md`](progress/PROGRESS_121.md) — generate-plan unauth public E2E coverage
+- [`progress/PROGRESS_120.md`](progress/PROGRESS_120.md) — protected redirect public E2E coverage
+- [`progress/PROGRESS_119.md`](progress/PROGRESS_119.md) — login public E2E coverage
+- [`progress/PROGRESS_118.md`](progress/PROGRESS_118.md) — onboarding route guard check
+- [`progress/PROGRESS_117.md`](progress/PROGRESS_117.md) — generate-plan onboarding guard
+- [`progress/PROGRESS_116.md`](progress/PROGRESS_116.md) — migration docs check
+- [`progress/PROGRESS_115.md`](progress/PROGRESS_115.md) — env safety check
+- [`progress/PROGRESS_114.md`](progress/PROGRESS_114.md) — legal disclosure check
+- [`progress/PROGRESS_113.md`](progress/PROGRESS_113.md) — onboarding schema check
+- [`progress/PROGRESS_112.md`](progress/PROGRESS_112.md) — user data delete guard check
+- [`progress/PROGRESS_111.md`](progress/PROGRESS_111.md) — user data delete confirmation header
+- [`progress/PROGRESS_110.md`](progress/PROGRESS_110.md) — auth E2E build guard 自己検査
 - [`progress/PROGRESS_109.md`](progress/PROGRESS_109.md) — progress index check 追加
 - [`progress/PROGRESS_108.md`](progress/PROGRESS_108.md) — Markdown mojibake check 追加
 - [`progress/PROGRESS_107.md`](progress/PROGRESS_107.md) — Markdown local link check 追加

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { isUserOnboarded } from '@/lib/onboarding'
 
 const navItems = [
   { href: '/dashboard', label: '献立', icon: '📅' },
@@ -18,6 +19,16 @@ export default async function MainLayout({ children }: { children: React.ReactNo
 
   if (!user) {
     redirect('/login')
+  }
+
+  const { data: profile } = await supabase
+    .from('users')
+    .select('onboarding_completed_at')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  if (!isUserOnboarded(profile)) {
+    redirect('/setup')
   }
 
   return (

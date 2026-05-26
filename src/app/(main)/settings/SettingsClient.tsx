@@ -3,6 +3,12 @@
 import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import {
+  PLANNING_GOAL_OPTIONS,
+  SELF_COOK_FREQUENCY_OPTIONS,
+  type PlanningGoal,
+  type SelfCookFrequency,
+} from '@/lib/onboarding'
 import { PERSONA_LIST } from '@/lib/personas'
 import {
   CALORIE_RANGE,
@@ -38,6 +44,13 @@ export function SettingsClient({ initialUser }: Props) {
   )
   const [allergic, setAllergic] = useState(
     (initialUser?.allergic_ingredients ?? []).join('、')
+  )
+  const [selfCookFrequency, setSelfCookFrequency] =
+    useState<SelfCookFrequency>(
+      initialUser?.self_cook_frequency ?? 'sometimes'
+    )
+  const [planningGoal, setPlanningGoal] = useState<PlanningGoal>(
+    initialUser?.planning_goal ?? 'balanced'
   )
   const [persona, setPersona] = useState<PersonaId>(
     initialUser?.selected_persona ?? 'mei'
@@ -89,26 +102,40 @@ export function SettingsClient({ initialUser }: Props) {
     startTransition(async () => {
       const {
         data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) {
-        setError('ログインが必要です')
+        error: authError,
+      } = await supabase.auth.getUser().catch(() => ({
+        data: { user: null },
+        error: new Error('通信に失敗しました。接続を確認してください。'),
+      }))
+      if (authError || !user) {
+        setError(authError?.message ?? 'ログインが必要です')
         return
       }
 
-      const { error: updErr } = await supabase
-        .from('users')
-        .update({
-          display_name: displayName.trim() || null,
-          default_servings: servingsNum,
-          disliked_ingredients: parseList(disliked),
-          allergic_ingredients: parseList(allergic),
-          selected_persona: persona,
-          target_calories: calNum,
-          target_pfc_protein: p,
-          target_pfc_fat: f,
-          target_pfc_carbs: c,
-        })
-        .eq('id', user.id)
+      let updErr: { message: string } | null = null
+      try {
+        const result = await supabase
+          .from('users')
+          .update({
+            display_name: displayName.trim() || null,
+            default_servings: servingsNum,
+            disliked_ingredients: parseList(disliked),
+            allergic_ingredients: parseList(allergic),
+            self_cook_frequency: selfCookFrequency,
+            planning_goal: planningGoal,
+            selected_persona: persona,
+            target_calories: calNum,
+            target_pfc_protein: p,
+            target_pfc_fat: f,
+            target_pfc_carbs: c,
+          })
+          .eq('id', user.id)
+        updErr = result.error
+      } catch {
+        updErr = {
+          message: '設定を保存できませんでした。接続を確認してください。',
+        }
+      }
 
       if (updErr) {
         setError(updErr.message)
@@ -145,6 +172,38 @@ export function SettingsClient({ initialUser }: Props) {
         <p className="text-[10px] text-muted">
           レシピの材料量スケール初期値に使われます
         </p>
+      </div>
+
+      <div className="hud-border bg-card p-3 flex flex-col gap-2">
+        <label className="text-xs text-muted">自炊頻度</label>
+        <select
+          value={selfCookFrequency}
+          onChange={(e) =>
+            setSelfCookFrequency(e.target.value as SelfCookFrequency)
+          }
+          className="bg-transparent border border-card-border rounded px-2 py-1 text-sm"
+        >
+          {SELF_COOK_FREQUENCY_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label} - {option.description}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="hud-border bg-card p-3 flex flex-col gap-2">
+        <label className="text-xs text-muted">目標</label>
+        <select
+          value={planningGoal}
+          onChange={(e) => setPlanningGoal(e.target.value as PlanningGoal)}
+          className="bg-transparent border border-card-border rounded px-2 py-1 text-sm"
+        >
+          {PLANNING_GOAL_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label} - {option.description}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="hud-border bg-card p-3 flex flex-col gap-2">

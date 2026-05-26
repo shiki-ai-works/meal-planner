@@ -92,4 +92,11 @@ export function getPersona(id: PersonaId): PersonaPreference {
   return PERSONAS[id]
 }
 
+export function isPersonaId(value: unknown): value is PersonaId {
+  return (
+    typeof value === 'string' &&
+    Object.prototype.hasOwnProperty.call(PERSONAS, value)
+  )
+}
+
 export const PERSONA_LIST: PersonaPreference[] = Object.values(PERSONAS)

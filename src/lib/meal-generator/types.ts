@@ -5,6 +5,7 @@ import type {
   PersonaId,
   WeekPlan,
 } from '@/types/database'
+import type { PlanningGoal, SelfCookFrequency } from '@/lib/onboarding'
 
 export interface GenerateInput {
   recipes: DbRecipe[]
@@ -12,6 +13,9 @@ export interface GenerateInput {
   dislikedIngredients: string[]
   allergicIngredients: string[]
   lockedMeals: DbLockedMeal[]
+  inventoryNames?: string[]
+  planningGoal?: PlanningGoal
+  selfCookFrequency?: SelfCookFrequency
   seed?: number
 }
 

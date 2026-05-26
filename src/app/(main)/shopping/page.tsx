@@ -77,9 +77,18 @@ export default async function ShoppingPage() {
       {grouped ? (
         <ShoppingClient weekStartDate={weekStartDate} grouped={grouped} />
       ) : (
-        <p className="text-sm text-muted text-center py-6">
-          今週の献立がありません。ダッシュボードで生成してください。
-        </p>
+        <div className="hud-border bg-card p-5 text-center">
+          <p className="text-sm font-bold">今週の献立がありません</p>
+          <p className="mt-2 text-xs text-muted">
+            献立を作ると、必要な食材がここにまとまります。
+          </p>
+          <Link
+            href="/dashboard"
+            className="mt-4 inline-flex min-h-10 items-center rounded bg-accent px-4 text-sm font-bold text-white"
+          >
+            献立を作る
+          </Link>
+        </div>
       )}
     </div>
   )

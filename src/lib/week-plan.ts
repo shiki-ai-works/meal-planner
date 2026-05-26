@@ -31,6 +31,9 @@ export function emptyDay(): DayMeals {
     is_eating_out_breakfast: false,
     is_eating_out_lunch: false,
     is_eating_out_dinner: false,
+    breakfast_reason: null,
+    lunch_reason: null,
+    dinner_reason: null,
   }
 }
 
@@ -59,14 +62,17 @@ export function assignRecipeToWeek({
     day.breakfast = recipeId
     day.breakfast_locked = locked
     day.is_eating_out_breakfast = false
+    day.breakfast_reason = locked ? '手動で固定した料理' : '手動で選んだ料理'
   } else if (mealType === 'lunch') {
     day.lunch = recipeId
     day.lunch_locked = locked
     day.is_eating_out_lunch = false
+    day.lunch_reason = locked ? '手動で固定した料理' : '手動で選んだ料理'
   } else {
     day.dinner = recipeId
     day.dinner_locked = locked
     day.is_eating_out_dinner = false
+    day.dinner_reason = locked ? '手動で固定した料理' : '手動で選んだ料理'
   }
   nextWeek[dayOfWeek] = day
   return nextWeek

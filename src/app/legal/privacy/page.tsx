@@ -43,7 +43,10 @@ export default function PrivacyPage() {
       <section className="hud-border bg-card p-5">
         <h3 className="text-sm font-bold">削除と問い合わせ</h3>
         <p className="mt-2 text-sm text-muted">
-          アカウントや保存データの削除を希望する場合は、運営者に連絡してください。
+          設定画面から、保存データを JSON 形式で書き出したり、アプリ内の保存データを削除したりできます。
+          JSON は、データを他の場所へ移すための読み書きしやすい形式です。
+          削除対象は、表示名、好み、献立、在庫、常備品、固定枠、買い物リスト履歴です。
+          認証アカウント自体の削除を希望する場合は、運営者に連絡してください。
           公開後は、GitHub repository の Issue またはアプリ内で案内する連絡先を問い合わせ窓口にします。
         </p>
       </section>

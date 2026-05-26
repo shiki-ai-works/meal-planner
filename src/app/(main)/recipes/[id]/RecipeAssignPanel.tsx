@@ -29,6 +29,7 @@ const DAY_MS = 24 * 60 * 60 * 1000
 
 type LockedKey = 'breakfast_locked' | 'lunch_locked' | 'dinner_locked'
 type EatingOutKey = 'is_eating_out_breakfast' | 'is_eating_out_lunch' | 'is_eating_out_dinner'
+type ReasonKey = 'breakfast_reason' | 'lunch_reason' | 'dinner_reason'
 
 const LOCKED_KEY: Record<MealSlot, LockedKey> = {
   breakfast: 'breakfast_locked',
@@ -40,6 +41,11 @@ const EATING_OUT_KEY: Record<MealSlot, EatingOutKey> = {
   breakfast: 'is_eating_out_breakfast',
   lunch: 'is_eating_out_lunch',
   dinner: 'is_eating_out_dinner',
+}
+const REASON_KEY: Record<MealSlot, ReasonKey> = {
+  breakfast: 'breakfast_reason',
+  lunch: 'lunch_reason',
+  dinner: 'dinner_reason',
 }
 
 function parseLocalDate(date: string) {
@@ -65,6 +71,7 @@ function clearSlot(day: DayMeals, slot: MealSlot) {
   }
   day[LOCKED_KEY[slot]] = false
   day[EATING_OUT_KEY[slot]] = false
+  day[REASON_KEY[slot]] = null
 }
 
 function getSlotFields(day: DayMeals, slot: MealSlot) {
@@ -73,6 +80,7 @@ function getSlotFields(day: DayMeals, slot: MealSlot) {
       recipeId: day.breakfast,
       locked: day.breakfast_locked,
       eatingOut: day.is_eating_out_breakfast,
+      reason: day.breakfast_reason ?? null,
     }
   }
   if (slot === 'lunch') {
@@ -80,12 +88,14 @@ function getSlotFields(day: DayMeals, slot: MealSlot) {
       recipeId: day.lunch,
       locked: day.lunch_locked,
       eatingOut: day.is_eating_out_lunch,
+      reason: day.lunch_reason ?? null,
     }
   }
   return {
     recipeId: day.dinner,
     locked: day.dinner_locked,
     eatingOut: day.is_eating_out_dinner,
+    reason: day.dinner_reason ?? null,
   }
 }
 
@@ -236,6 +246,7 @@ export function RecipeAssignPanel({
     const newWeek: WeekPlan = { ...plan.plan }
     const day: DayMeals = { ...(newWeek[dayIdx] ?? emptyDay()) }
     day[key] = !day[key]
+    day[REASON_KEY[slot]] = day[key] ? 'この枠を固定中' : null
     newWeek[dayIdx] = day
 
     void saveCurrentWeek(

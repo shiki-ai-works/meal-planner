@@ -17,6 +17,7 @@ export interface MealCardProps {
   onToggleLocked?: () => void
   href?: string | null
   onSelect?: () => void
+  reason?: string | null
 }
 
 const SLOT_LABEL: Record<MealSlot, string> = {
@@ -43,6 +44,7 @@ export function MealCard({
   onToggleLocked,
   href,
   onSelect,
+  reason,
 }: MealCardProps) {
   const longPress = useLongPress({
     onLongPress: () => {
@@ -167,6 +169,15 @@ export function MealCard({
                 {recipe.cuisine_genre && <span>{recipe.cuisine_genre}</span>}
               </div>
             )}
+            {reason && (
+              <div
+                className="mt-1 max-w-full truncate rounded bg-black/35 px-1.5 py-0.5 text-[10px] text-white/95 backdrop-blur-sm"
+                style={{ textShadow: '0 1px 2px rgba(0,0,0,0.6)' }}
+                title={reason}
+              >
+                {reason}
+              </div>
+            )}
           </>
         )}
       </div>
@@ -200,7 +211,7 @@ export function MealCard({
 
   const actionLabel = showAsEatingOut ? '手作りに戻す' : '外食にする'
   const cardLabel = hasRecipe
-    ? `${SLOT_LABEL[slot]} ${recipe!.name}。Shift Enterで${actionLabel}`
+    ? `${SLOT_LABEL[slot]} ${recipe!.name}${reason ? `。理由: ${reason}` : ''}。Shift Enterで${actionLabel}`
     : `${SLOT_LABEL[slot]} 未定。Shift Enterで${actionLabel}`
 
   const recipeHref = href === undefined ? `/recipes/${recipe?.id}` : href

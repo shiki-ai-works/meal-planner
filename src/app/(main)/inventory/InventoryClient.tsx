@@ -154,13 +154,19 @@ export function InventoryClient({ initialItems }: Props) {
       </form>
 
       {error && (
-        <div className="hud-border bg-card p-3 text-sm text-danger">{error}</div>
+        <div className="hud-border bg-card p-3" role="alert">
+          <p className="text-sm font-bold text-danger">在庫を更新できませんでした</p>
+          <p className="mt-1 text-xs text-muted">{error}</p>
+        </div>
       )}
 
       {sorted.length === 0 ? (
-        <p className="text-sm text-muted text-center py-6">
-          在庫はまだありません。
-        </p>
+        <div className="hud-border bg-card p-5 text-center">
+          <p className="text-sm font-bold">在庫はまだありません</p>
+          <p className="mt-2 text-xs text-muted">
+            よく使う食材を入れておくと、買い物リストが余分な買い足しを避けやすくなります。
+          </p>
+        </div>
       ) : (
         <ul className="flex flex-col gap-2">
           {sorted.map((it) => {
@@ -186,7 +192,7 @@ export function InventoryClient({ initialItems }: Props) {
                 <button
                   type="button"
                   onClick={() => handleDelete(it.id)}
-                  className="text-xs text-muted hover:text-danger px-2 py-1"
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded border border-card-border text-xs text-muted hover:border-danger hover:text-danger"
                   aria-label="削除"
                 >
                   ✕

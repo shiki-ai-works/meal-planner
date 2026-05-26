@@ -50,6 +50,9 @@ export interface DbUser {
   disliked_ingredients: string[]
   allergic_ingredients: string[]
   selected_persona: PersonaId
+  self_cook_frequency: 'rarely' | 'sometimes' | 'often'
+  planning_goal: 'balanced' | 'time_saving' | 'budget' | 'protein' | 'family'
+  onboarding_completed_at: string | null
   target_calories: number
   target_pfc_protein: number // 10-30
   target_pfc_fat: number // 15-35
@@ -93,6 +96,9 @@ export interface DayMeals {
   is_eating_out_breakfast: boolean
   is_eating_out_lunch: boolean
   is_eating_out_dinner: boolean
+  breakfast_reason?: string | null
+  lunch_reason?: string | null
+  dinner_reason?: string | null
 }
 
 export interface WeekPlan {

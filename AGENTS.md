@@ -4,6 +4,17 @@
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
+<!-- PRODUCTIZATION_GUIDANCE_START -->
+## Productization guidance
+
+The user is not assuming prior professional product-development experience. When working on this project, proactively suggest missing productization needs as they become relevant instead of waiting for the user to ask.
+
+- Explain unfamiliar IT or product terms briefly when they appear.
+- Separate suggestions into practical priority levels such as required now, important soon, later, and risks.
+- Prefer concrete artifacts when helpful: templates, checklists, logs, README updates, backlog items, privacy notes, release checks, and operational rules.
+- Treat the user as the product owner and learning partner; avoid assuming they already know standard industry practices.
+<!-- PRODUCTIZATION_GUIDANCE_END -->
+
 <!-- OBSIDIANGIT_WORKFLOW_START -->
 ## #obsidiangit workflow
 

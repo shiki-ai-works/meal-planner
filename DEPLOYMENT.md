@@ -10,7 +10,9 @@
 npm run release:check
 ```
 
-`release:check` は通常検査、strict 画像出典メモ検査、公開前の主要導線 E2E をまとめて実行します。E2E は end-to-end の略で、入口から出口までをまとめて見る検査です。通常検査には、README と `PORTFOLIO.md` のスクリーンショット参照が壊れていないかを見る `portfolio:check`、Markdown 文書のローカルリンク切れを見る `docs:links`、日本語文書の文字化け断片を見る `docs:mojibake`、最新進捗が ROADMAP に載っているかを見る `docs:progress-index` も含まれます。`portfolio:check` は参照先が存在し、拡張子どおりの JPEG / PNG として読めるかを確認します。`docs:links` は README / PORTFOLIO / ROADMAP / NEXT_CHAT_HANDOFF / DEPLOYMENT のファイル参照が実在するかを確認します。`docs:mojibake` は UTF-8 の読み違えで生まれやすい断片が Markdown に混ざっていないか確認します。`docs:progress-index` は最新の `progress/PROGRESS_NN.md` が ROADMAP の最終更新と関連ドキュメントに反映されているか確認します。公開前 E2E には `/demo?section=shopping` と `/demo?recipe=demo-natto-rice` も含まれるので、README で案内しているデモの深いリンクも確認できます。strict は警告も失敗として扱う確認で、作者名やライセンスが placeholder のまま戻った時に公開前で止めるための網です。`check` の build 結果を E2E で再利用するため、同じ build を二度走らせません。画像出典メモ検査には、ローカル作業用の `supabase/recipe-images.sources.json` が必要です。build 済み E2E の `e2e:public:run` は、ローカル検査時に `.next/BUILD_ID` が無ければ先に build するよう案内します。この guard は `npm run e2e:public:test` でも自己検査されます。
+`release:check` は通常検査、strict 画像出典メモ検査、公開前の主要導線 E2E をまとめて実行します。E2E は end-to-end の略で、入口から出口までをまとめて見る検査です。通常検査には、README と `PORTFOLIO.md` のスクリーンショット参照が壊れていないかを見る `portfolio:check`、`.env.example` や deploy script の鍵まわりを確認する `env:safety`、private API の no-store header が外れていないかを見る `private-api:cache`、ユーザーデータ削除 API の確認 header が外れていないかを見る `user-data:delete-guard`、初回設定の選択肢と database 制約、生成 / 割り当て / 毎週固定 API の初回設定完了 guard、signup / setup / main layout の初回設定 route を見る `onboarding:schema`、プライバシーと利用規約の主要説明を見る `legal:disclosures`、Markdown 文書のローカルリンク切れを見る `docs:links`、日本語文書の文字化け断片を見る `docs:mojibake`、migration 適用リストのずれを見る `docs:migrations`、最新進捗が ROADMAP に載っているかを見る `docs:progress-index` も含まれます。env は環境変数、つまり deploy 先や手元からアプリへ渡す設定値です。database 制約は database が受け取れる値の決まりです。route は画面や API へ向かう道筋です。migration は database 変更を順番に適用する SQL ファイルです。`private-api:cache` は個人向け API の JSON 応答と公開導線 E2E の header 確認が `Cache-Control: no-store` を保っているかを見ます。`portfolio:check` は参照先が存在し、拡張子どおりの JPEG / PNG として読めるかを確認します。`docs:links` は README / PORTFOLIO / ROADMAP / NEXT_CHAT_HANDOFF / DEPLOYMENT のファイル参照が実在するかを確認します。`docs:mojibake` は UTF-8 の読み違えで生まれやすい断片が Markdown に混ざっていないか確認します。`docs:progress-index` は最新の `progress/PROGRESS_NN.md` が ROADMAP の最終更新と関連ドキュメントに反映されているか確認します。公開前 E2E には `/demo?section=shopping` と `/demo?recipe=demo-natto-rice` も含まれるので、README で案内しているデモの深いリンクも確認できます。strict は警告も失敗として扱う確認で、作者名やライセンスが placeholder のまま戻った時に公開前で止めるための網です。`check` の build 結果を E2E で再利用するため、同じ build を二度走らせません。画像出典メモ検査には、ローカル作業用の `supabase/recipe-images.sources.json` が必要です。build 済み E2E の `e2e:public:run` は、ローカル検査時に `.next/BUILD_ID` が無ければ先に build するよう案内します。この guard は `npm run e2e:public:test` でも自己検査されます。
+
+PROGRESS_131 以降の `private-api:cache` は、個人向け API の JSON 応答だけでなく、公開導線 E2E と認証付き E2E の no-store 確認も検査対象に含みます。no-store は、個人データを含む応答をブラウザや途中の仕組みに保存させにくくする header です。
 
 画像出典の warning 対象を source page URL つきで見直す場合は、次を使います。source page URL は出典ページの住所で、作者名やライセンスを確認する入口です。
 
@@ -36,6 +38,7 @@ npm run recipe-images:sources-check:strict
 005_detailed_recipes.sql
 006_detailed_existing_recipes.sql
 007_recipe_images.sql
+008_user_onboarding.sql
 ```
 
 `003` は過去に別途適用済みとして扱われています。新しい本番 project では、`meal_plans` の `user_id, week_start_date` unique 制約が入っているか確認してください。
@@ -117,6 +120,19 @@ $env:E2E_BASE_URL='https://<your-production-domain>'
 npm run e2e:public:run
 ```
 
+認証後の保存導線も確認する場合は、公開環境にテスト用ユーザーを用意し、次を実行します。credential は認証情報のことです。Vercel env や CI secret に置き、Git には commit しません。
+
+```powershell
+$env:E2E_BASE_URL='https://<your-production-domain>'
+$env:E2E_AUTH_EMAIL='test-user@example.com'
+$env:E2E_AUTH_PASSWORD='long-test-password'
+npm run e2e:auth
+```
+
+この検査は、ログイン、初期設定保存、献立生成、1 食固定、在庫追加、買い物ページ、JSON export、再ログイン後の保存確認を行います。JSON export は、アプリ内データを構造化して書き出す確認です。削除 API は破壊的なので、この E2E では実行しません。削除 API は UI の確認テキストに加えて確認 header も要求します。header は request に添える小さな目印で、意図しない DELETE を手前で止めるためのものです。
+
+credential を入れる前に script の安全ガードだけを確認する場合は、`npm run e2e:auth:test` を使います。credential 不足、`E2E_AUTH_MODE` の誤り、local build 不足を外部 Supabase に触る前に確認します。
+
 次のページをブラウザでも確認します。
 
 - `/setup`
@@ -125,7 +141,12 @@ npm run e2e:public:run
 - `/legal/terms`
 - `/legal/privacy`
 - `/legal/attributions`
+- `/login`
 - `/signup`
+
+公開導線 E2E では、未ログインで `/dashboard` を開いた時に `/login` へ redirect されることも確認します。redirect は、別の画面へ案内し直す応答です。
+
+また、未ログインで `/api/generate-plan`、`/api/assign-recipe`、`/api/weekly-locks/[id]`、`/api/user-data/export`、`/api/user-data/delete` を直接呼んだ時に `401 Unauthorized` で止まることも確認します。`401` は認証が必要という意味の HTTP status です。削除 API は、確認 text として `削除` を使い、通信 header の値には ASCII 安全な `delete-confirmed` を使います。header が無い DELETE は `400` で止まることも確認します。private API の `400` / `401` には `Cache-Control: no-store` が付くことも確認します。`no-store` は、ブラウザや中継 cache に応答を保存させない指定です。
 
 ## 2026-05-25 の CLI 試行結果
 

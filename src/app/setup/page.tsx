@@ -1,11 +1,22 @@
 import Link from 'next/link'
+import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
 import { connection } from 'next/server'
 import { legalLinks } from '@/lib/legal'
+import { isUserOnboarded } from '@/lib/onboarding'
+import { createClient } from '@/lib/supabase/server'
 import { getSupabaseSetupStatus } from '@/lib/supabase/env'
+import { getMondayISO } from '@/lib/week-plan'
+import type { DbUser } from '@/types/database'
+import { OnboardingClient } from './OnboardingClient'
 
 const SUPABASE_DASHBOARD_URL = 'https://supabase.com/dashboard/projects'
 const SUPABASE_API_KEYS_DOC_URL =
   'https://supabase.com/docs/guides/getting-started/api-keys'
+
+function isSupabaseAuthCookie(name: string) {
+  return name.startsWith('sb-') && name.includes('auth-token')
+}
 
 export default async function SetupPage() {
   await connection()
@@ -29,6 +40,39 @@ export default async function SetupPage() {
     : hasPlaceholderOrInvalidValues
       ? '環境変数は入っていますが、仮値または読み取れない形式が残っています。Supabase Dashboard の値へ置き換えてから開発サーバーを再起動してください。'
       : 'アプリは起動しています。今はデータベース接続の鍵が未設定なので、認証・献立・在庫などの画面へ進む前に `.env.local` を用意してください。'
+
+  const cookieStore = await cookies()
+  const hasAuthCookie = cookieStore.getAll().some((cookie) =>
+    isSupabaseAuthCookie(cookie.name),
+  )
+
+  if (isConfigured && hasAuthCookie) {
+    const supabase = await createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (user) {
+      const { data } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle()
+      const dbUser = (data ?? null) as DbUser | null
+
+      if (!isUserOnboarded(dbUser)) {
+        return (
+          <OnboardingClient
+            email={user.email ?? ''}
+            initialUser={dbUser}
+            weekStartDate={getMondayISO(new Date())}
+          />
+        )
+      }
+
+      redirect('/dashboard')
+    }
+  }
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 text-foreground">

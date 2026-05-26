@@ -12,11 +12,13 @@ export default function SignupPage() {
   const [password, setPassword] = useState('')
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [info, setInfo] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+    setInfo(null)
 
     if (password.length < 8) {
       setError('パスワードは8文字以上で設定してください')
@@ -30,17 +32,24 @@ export default function SignupPage() {
     setLoading(true)
     const supabase = createClient()
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { display_name: displayName },
-      },
-    })
+    const { data, error } = await supabase.auth
+      .signUp({
+        email,
+        password,
+        options: {
+          data: { display_name: displayName },
+        },
+      })
+      .catch(() => ({
+        data: null,
+        error: new Error('通信に失敗しました。接続を確認してください。'),
+      }))
 
     if (error) {
-      if (error.message.includes('already registered')) {
+      if (error.message.toLowerCase().includes('already registered')) {
         setError('このメールアドレスはすでに登録されています')
+      } else if (error.message.includes('通信に失敗')) {
+        setError(error.message)
       } else {
         setError('登録に失敗しました。もう一度お試しください')
       }
@@ -48,7 +57,15 @@ export default function SignupPage() {
       return
     }
 
-    router.push('/dashboard')
+    if (!data.session) {
+      setInfo(
+        '登録を受け付けました。確認メールが届いている場合は、メール内のリンクからログインして初回設定へ進んでください。',
+      )
+      setLoading(false)
+      return
+    }
+
+    router.push('/setup')
     router.refresh()
   }
 
@@ -105,6 +122,11 @@ export default function SignupPage() {
         {error && (
           <p className="text-sm text-[var(--danger)] bg-red-50 dark:bg-red-950/20 px-3 py-2 rounded-md">
             {error}
+          </p>
+        )}
+        {info && (
+          <p className="text-sm text-[var(--success)] bg-green-50 dark:bg-green-950/20 px-3 py-2 rounded-md">
+            {info}
           </p>
         )}
 
