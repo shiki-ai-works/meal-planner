@@ -15,6 +15,19 @@ The user is not assuming prior professional product-development experience. When
 - Treat the user as the product owner and learning partner; avoid assuming they already know standard industry practices.
 <!-- PRODUCTIZATION_GUIDANCE_END -->
 
+<!-- NEXTCHAT_WORKFLOW_START -->
+## #nextchat workflow
+
+When the user includes `#nextchat`, preserve the current session context for the next chat.
+
+- Update `NEXT_CHAT_HANDOFF.md` with a concise Japanese handoff.
+- Include: current project state, decisions made, implemented changes, verification results, known gaps, and suggested next actions.
+- Explain unfamiliar IT/product terms briefly inside the handoff when useful.
+- Do not include secrets, access tokens, `.env.local` values, private account IDs, or raw sensitive logs.
+- Do not commit or push unless the user also includes `#obsidiangit` or explicitly asks for Git publication.
+- Keep Obsidian vault preservation separate unless the user explicitly asks to save or publish a note there.
+<!-- NEXTCHAT_WORKFLOW_END -->
+
 <!-- OBSIDIANGIT_WORKFLOW_START -->
 ## #obsidiangit workflow
 
